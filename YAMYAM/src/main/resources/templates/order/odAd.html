@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+   xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+   xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+   layout:decorate="~{layout/layout}">
+<head>
+<meta charset="UTF-8">
+<title>YAMYAM</title>
+
+<style>
+#od-btn {
+   display: inline-block; margin: 0 5px; float: right;
+}
+
+#actCd, #actNm, #prdCd, #prdNm, #startpicker-input, #endpicker-input {
+text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+   <div id="od-title">
+      <h3>주문서 관리</h3>
+      <hr>
+   </div>
+   
+   <div id="odAd-content">
+      <div id="input-group">
+         <ul class="ul-style">
+      <li><table id="form-check">
+   <tr>
+      <td>진행 상황</td>
+      <td>
+        <input class="form-check-input" type="radio" name="flexRadioDefault" id="odAll" value="전체" checked>
+        <label class="form-check-label" for="odAll">전체</label>
+      </td>
+   
+      <td>
+        <input class="form-check-input" type="radio" name="flexRadioDefault" id="odIng" value="ORD-STS1">
+        <label class="form-check-label" for="odIng">진행</label>
+      </td>
+   
+      <td>
+        <input class="form-check-input" type="radio" name="flexRadioDefault" id="odEnd" value="ORD-STS2">
+        <label class="form-check-label" for="odEnd">완료</label>
+      </td>
+   </tr>
+   </table>
+      </li>
+
+      <li><label for="actCd">거래처</label><input type="text" 
+          data-bs-toggle="modal" data-bs-target="#actModal2" id="actCd">
+          <img id="actCd" class="Magnifying-Glass-img" alt="image" src="../images/Magnifying_Glass.png">
+          <input type="text" class="back" readonly id="actNm"><br></li>
+
+         <li><label for="prdNm">제품명</label><input type="text" 
+            data-bs-toggle="modal" data-bs-target="#prdModal2" id="prdCd">
+            <img id="prdCd" class="Magnifying-Glass-img" alt="image" src="../images/Magnifying_Glass.png">
+            <input type="text" class="back" readonly id="prdNm"><br></li>
+
+            <li><label>주문일자</label>
+               <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+                  <input id="startpicker-input" type="text" aria-label="Date">
+                  <span class="tui-ico-date"></span>
+                  <div id="startpicker-container" style="margin-left: -1px;"></div>
+               </div>
+               <span>-</span>
+               <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+                  <input id="endpicker-input" type="text" aria-label="Date">
+                  <span class="tui-ico-date"></span>
+                  <div id="endpicker-container" style="margin-left: -1px;"></div>
+               </div>
+            
+               <button class="btn btn-dark btn-sm" id="searchBtn">조회</button>
+               <button type="button" class="btn btn-dark btn-sm" id="cancelBtn">초기화</button></li>
+               </ul>
+               
+		<!-- 거래처 Modal -->
+	  <div class="modal" id="actModal" tabindex="-1"
+	  		aria-labelledby="exampleModalLabel" aria-hidden="true">
+	        <div class="modal-dialog">
+	          <div class="modal-content">
+	            <div class="modal-header">
+	              <h5 class="modal-title" id="exampleModalLabel">거래처 목록</h5>
+	              <button type="button" class="btn-close" data-bs-dismiss="modal"
+	               aria-label="Close"></button>
+	            </div>
+	             <div class="modal-body">
+               <div id="actModalGrid"></div>
+               </div>
+	          </div>
+	        </div>
+	   </div>   
+	   
+	   
+	   
+	   <!-- 거래처 Modal2 -->
+	  <div class="modal" id="actModal2" tabindex="-1"
+	  		aria-labelledby="exampleModalLabel" aria-hidden="true">
+	        <div class="modal-dialog">
+	          <div class="modal-content">
+	            <div class="modal-header">
+	              <h5 class="modal-title" id="exampleModalLabel">거래처 목록</h5>
+	              <button type="button" class="btn-close" data-bs-dismiss="modal"
+	               aria-label="Close"></button>
+	            </div>
+	             <div class="modal-body">
+               <div id="actModalGrid2"></div>
+               </div>
+	          </div>
+	        </div>
+	   </div>
+	   
+	   
+	   <!-- 제품명 Modal -->
+      <div class="modal" id="prdModal" tabindex="-1"
+         aria-labelledby="exampleModalLabel" aria-hidden="true">
+         <div class="modal-dialog">
+            <div class="modal-content">
+               <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">제품 목록</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"
+                     aria-label="Close"></button>
+               </div>
+               <div class="modal-body">
+               <div id="prdModalGrid"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+      
+      
+      <!-- 제품명 Modal2 -->
+      <div class="modal" id="prdModal2" tabindex="-1"
+         aria-labelledby="exampleModalLabel" aria-hidden="true">
+         <div class="modal-dialog">
+            <div class="modal-content">
+               <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">제품 목록</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"
+                     aria-label="Close"></button>
+               </div>
+               <div class="modal-body">
+               <div id="prdModalGrid2"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+</div>
+</div>
+
+   <div id="od-btn">
+   <th:block sec:authorize="hasAnyAuthority('JOB-GRD1', 'JOB-GRD2')">
+	   <button class="btn btn-dark btn-sm" id="insertBtn">행추가</button>
+	   <button class="btn btn-dark btn-sm" id="deleteBtn">선택삭제</button>
+	   <button class="btn btn-dark btn-sm" id="saveBtn">저장</button>
+   </th:block>
+   <button class="btn btn-dark btn-sm" id="exportBtn">엑셀 파일 출력</button>
+   </div>
+   <br>
+<div id="grid"></div>
+
+<script type= text/javascript>
+
+/* token */
+var token = $("meta[name='_csrf']").attr("content");
+var header = $("meta[name='_csrf_header']").attr("content");
+
+	
+	/*------------
+	// function
+	----------------*/
+	getOrdList();						// DB에서 주문서목록 불러오기 
+	getActList();						// DB에서 거래처목록 불러오기 - 조회용 
+	getPrdList();						// DB에서 제품목록 불러오기 - 조회용
+	cancelBtnHandler();  				// input 값 초기화 버튼
+	searchBtnHandler();					// 조회 버튼 핸들러
+	deleteBtnHandler();					// 삭제 버튼 핸들러
+	SaveBtnHandler();					// 저장 버튼 핸들러
+	exportBtnHandler(); 				// 엑셀출력 버튼 핸들러
+	
+	let grid = MainGridInit(); 			// 주문서 Grid
+	
+	let actModalGrid = actGridInit();	// 행 추가 시, 사용하는 거래처 Modal Grid
+	let actModalGrid2 = actGridInit2();	// 조건 조회 시, 사용하는 거래처 Modal Grid
+	
+	let prdModalGrid = prdGridInit();	// 행 추가 시, 사용하는 제품 Modal Grid
+	let prdModalGrid2 = prdGridInit2();	// 조건 조회 시, 사용하는 제품 Modal Grid
+
+	
+	/*------------
+	// 데이트피커
+	----------------*/
+   rangeDatepickerInit('#startpicker-input', '#startpicker-container','#endpicker-input','#endpicker-container')
+  
+   
+    /*------------
+	// 조회버튼 이벤트 핸들러
+	----------------*/ // 함수로 아작스 두개 묶기
+	function searchBtnHandler(){
+		$('#searchBtn').on('click',function(){
+			let getOdSts = $("input[name=flexRadioDefault]:checked").val();
+			let getActCd = $("#actCd").val();
+			let getPrdCd = $("#prdCd").val();
+			let getStartDate = $("#startpicker-input").val();
+			let getEndDate = $("#endpicker-input").val();
+			if(getOdSts == '전체') {
+				$.ajax({
+					 url : '/ordList',
+					 contentType: 'application/json',
+		             dataType : "json",
+		             method: "GET",
+		             success : function(data) {
+		                grid.resetData(data);
+		             },
+		             error : function(reject) {
+		                console.log(reject);
+		             }
+				})
+			}else if(getOdSts != '전체') {
+				$.ajax({
+				   url:'/ordList',
+				   contentType: 'application/json',
+				   dataType: "json",
+				   method: "GET",
+				   data : {
+					   "odSts" : getOdSts, "actCd" : getActCd, "prdCd" : getPrdCd,
+					   "startDate" : getStartDate, "endDate" : getEndDate
+				   },
+				   success : function(data) {
+					   grid.resetData(data);
+					   console.log(getOdSts);
+				   },
+				   error : function(reject) {
+					   console.log(reject);
+				   }
+			   })
+			}
+		});
+	}
+   
+	
+    /*------------
+	// 주문 조회 초기화 버튼
+	----------------*/ // 폼으로 감싸서 한번에 초기화시키기
+	function cancelBtnHandler(){
+		$('#cancelBtn').on('click',function(){
+			let radio_name = [];
+		    let radio = $("input[type=radio]");
+		    $.each(radio, function (key, value) { // input radio의 name 값 가져오기
+		        radio_name.push($(value).attr('name'));
+		    });
+		    radio_name = $.unique(radio_name.sort()).sort(); //중복요소 이름을 제거
+		    for (let i = 0; i < radio_name.length; i++) {
+		        $('input[name="' + radio_name[i] + '"]').removeAttr('checked');
+		        //체크되어있는 항목 모두 해제
+		        $('input[name="' + radio_name[i] + '"]')[0].checked = true;
+		        //name에서 첫번쨰 요소만 선택
+		    }
+			$("#startpicker-input").val(today);
+			$("#endpicker-input").val(today);
+			$("#actCd").val("");
+			$("#actNm").val("");
+			$("#prdCd").val("");
+			$("#prdNm").val("");
+			
+			$.ajax({
+				   url:'/ordList',
+				   contentType: 'application/json',
+				   dataType: "json",
+				   method: "GET",
+				   success : function(data) {
+					   grid.resetData(data);
+				   },
+				   error : function(reject) {
+					   console.log(reject);
+				   }
+			   })
+		});	
+	}
+   
+   
+    /*------------
+	// 주문서 리스트 그리드
+	----------------*/
+	function MainGridInit() {
+		let grid = new tui.Grid({
+		    el: document.getElementById('grid'),
+		    rowHeaders: ['checkbox','rowNum'],
+		    scrollX: false,
+		    scrollY: false,
+		    pageOptions: {
+                useClient: true,
+                perPage: 10
+              			},
+         	pagination : true,
+		    columns: [
+	    	 {
+		        header: '주문 일자',
+		        align : 'center',
+		        name: 'odDate'
+		      },
+		      {
+		        header: '주문 코드',
+		        align : 'center',
+		        name: 'odCd'
+		      },
+		      {
+		        header: '제품 코드',
+		        align : 'center',
+		        name  : 'prdCd',
+	        validation: {
+			     dataType: 'text',
+			     required: true
+			    		}
+		      },
+		      {
+		        header: '제품명',
+		        align : 'center',
+		        name: 'prdNm'
+		      },
+		      {
+		        header: '거래처 코드',
+		        align : 'center',
+		        name  : 'actCd',
+			validation: {
+			     dataType: 'text',
+			     required: true
+			  			}
+		      },
+		      {
+		        header: '거래처명',
+		        align : 'left',
+		        name: 'actNm'
+		      },
+	     	  {
+		        header: '주문량',
+		        width : 100,
+		        align : 'right',
+		        name: 'odAmt',
+		        editor: 'text',
+			validation: {
+			     dataType: 'text',
+			     required: true
+			      		}
+		      },
+	      	  {
+		        header: '납기 일자',
+		        align : 'center',
+		        name  : 'deDate',
+		        editor: {
+		        	type : 'datePicker',
+	        		options: {
+	        			 selectableRanges: [ [new Date(), addDay(1)] ],
+			              format: 'yyyy-MM-dd',
+			              language : 'ko'
+			            }
+		        },
+		        validation: {
+				     dataType: 'datePicker',
+				     required: true
+				      }
+		      },
+		      {
+		        header: '진행 상황',
+		        align : 'center',
+		        name: 'odSts'
+		      }
+		    ]
+		  });
+			return grid;
+    	}
+
+    
+	/*------------
+	// 주문서 리스트 가져오기
+	----------------*/
+	  function getOrdList() {
+          $.ajax({
+             url : '/ordList',
+             dataType : "json",
+             success : function(data) {
+                grid.resetData(data);
+             },
+             error : function(reject) {
+                console.log(reject);
+             }
+          })
+       }
+    
+    
+    /*------------
+	// 해당하는 header의 모달창 띄우기
+	----------------*/
+   	grid.on('click',function(ev){
+		if(!ev.rowKey) {
+			return;
+		}
+   		if(ev.columnName =='actCd'){
+   		 $.ajax({
+             url : '/actListModal',
+             dataType : "json",
+             success : function(data) {
+             	actModalGrid.resetData(data);
+   				$('#actModal').modal('show');
+        		actModalGrid.refreshLayout();
+             },
+             error : function(reject) {
+                console.log(reject);
+             }
+          })
+   		}else if (ev.columnName =='prdCd'){
+   		 $.ajax({
+             url : '/prdListModal',
+             dataType : "json",
+             success : function(data) {
+             	prdModalGrid.resetData(data);
+   				$('#prdModal').modal('show');
+          		prdModalGrid.refreshLayout();
+             },
+             error : function(reject) {
+                console.log(reject);
+             }
+          })
+   	   		}
+   	});
+
+    
+    
+	/*------------
+	// 행 추가 버튼
+	----------------*/
+   $('#insertBtn').on('click',function(){
+      let rowData = [{odDate: "", odCd: "", prdCd: "", prdNm: "", odAmt: "", actCd : "" , actNm: "", deDate: "", odSts:""}]
+      grid.appendRow(rowData,{at : 0}); 
+      
+	});
+	
+	
+
+    /*------------
+	// 저장 버튼 클릭
+	----------------*/ // 컨트롤러에서 if문으로 나눠주기
+	function SaveBtnHandler(){
+		$('#saveBtn').on('click',function(){
+			grid.blur();
+			let rowData = grid.getCheckedRows();
+			let ordList = [];
+			let odCd = '';
+			let odSts = '';
+			for (let i=0; i<rowData.length; i++) {
+				let prdCd = rowData[i].prdCd;
+				let odAmt = rowData[i].odAmt;
+				let actCd = rowData[i].actCd;
+				let deDate = rowData[i].deDate;
+				odCd = rowData[i].odCd;
+				odSts = rowData[i].odSts;
+				ordList.push({prdCd,odAmt,actCd,deDate,odCd});
+				console.log(rowData[i].odCd);
+				console.log(rowData[i].odSts);
+				
+			}
+			if (odCd == null){
+				sweetConfirm('C', function(){
+							$.ajax({
+								url : '/insertOrd',
+								type : 'post',
+								contentType: 'application/json',
+								data: JSON.stringify(ordList),
+								dataType : 'json',
+								beforeSend : function (xhr) {
+								    xhr.setRequestHeader(header, token);
+								},
+								 success : function(result) {
+					                 if(result > 0){
+					                	 Swal.fire(
+					       			          '등록이 완료되었습니다.'	);
+					                	 getOrdList();
+					                 }else {
+					                	 Swal.fire(
+					                			 '등록이 실패하였습니다.');
+					                 }
+					              },
+					              error : function(reject) {
+					                 console.log(reject);
+					              }
+					})	// end ajax
+				})	// end sweet
+			}else if(odCd != null) {
+				if(odSts == '완료') {
+					toastr.options = {
+							  "closeButton": true,
+							  "newestOnTop": true,
+							  "positionClass": "toast-bottom-full-width",
+							  "preventDuplicates": true,
+							  "extendedTimeOut" : 0, 
+							  "timeOut" : 0
+					}
+					toastr.error('완료된 주문서는 수정할 수 없습니다.');
+				}else {
+				sweetConfirm('U', function(){
+					$.ajax({
+						url : '/updateOrd',
+						type : 'post',
+						contentType: 'application/json',
+						data: JSON.stringify(ordList),
+						dataType : 'json',
+						beforeSend : function (xhr) {
+						    xhr.setRequestHeader(header, token);
+						},
+						 success : function(result) {
+			                 if(result > 0){
+			                	 Swal.fire(
+			       			          '수정이 완료되었습니다.'	);
+			                	 getOrdList();
+			                 }else {
+			                	 Swal.fire(
+			                			 '수정이 실패하였습니다.');
+			                 }
+			              },
+			              error : function(reject) {
+			                 console.log(reject);
+			              	}
+						})	// end ajax
+					}) // end sweet
+				} // end else
+			}	// end else if
+		}) // end click
+   } // end function
+
+   
+   
+    /*------------
+	// 삭제 버튼 클릭(그리드행 삭제)
+	----------------*/	
+	function deleteBtnHandler(){
+		// grid 선택 행 삭제
+		$('#deleteBtn').on('click',function(){
+			let rowData = grid.getCheckedRows();
+			let list = [];
+			let odCd = '';
+			let odSts = '';
+			for (let i=0; i<rowData.length; i++) {
+				odCd = rowData[i].odCd;
+				odSts = rowData[i].odSts;
+				list.push({odCd})
+			}if(odSts == '진행') {
+				toastr.options = {
+						  "closeButton": true,
+						  "newestOnTop": true,
+						  "positionClass": "toast-bottom-full-width",
+						  "preventDuplicates": true,
+						  "extendedTimeOut" : 0, 
+						  "timeOut" : 0
+				}
+				toastr.error('진행중인 주문서는 삭제할 수 없습니다.');
+			}else {
+			sweetConfirm('D', function(){
+				    	  $.ajax({
+				              url : '/deleteOrd',
+				              type: 'delete',
+				              contentType: 'application/json',
+								data: JSON.stringify(list),
+								beforeSend : function (xhr) {
+								    xhr.setRequestHeader(header, token);
+								},
+				              success : function(result) {
+				                 if(result > 0){
+				                	 Swal.fire(
+				       			          '삭제가 완료되었습니다.'	);
+				                	 getOrdList();
+				                 }else {
+				                	 Swal.fire(
+				                			'삭제에 실패하였습니다.');
+				                 }
+				              },
+				              error : function(reject) {
+				                 console.log(reject);
+				              }
+				           })
+				        grid.removeCheckedRows();
+				}) // end sweet
+			} // end else
+		});	// end click
+	}	// end function
+   
+   
+	
+	/*------------
+	// 거래처 Modal (행 추가 시, 사용)
+	----------------*/
+   function actGridInit() {
+		let actModalGrid = new tui.Grid({
+	    el: document.getElementById('actModalGrid'),
+	    bodyHeight: 200,
+	    rowHeaders: ['rowNum'],
+	    scrollX: false,
+	    scrollY: false,
+	    pageOptions: {
+            useClient: true,   // front에서만 페이징 하는 속성
+            perPage: 5
+      			    },
+     	pagination : true,
+	    columns: [
+	      {
+	        header: '거래처 코드',
+	        width : 90,
+	        align : 'center',
+	        name: 'actCd'
+	      },
+	      {
+	        header: '거래처명',
+	        width : 90,
+	        align : 'left',
+	        name: 'actNm',
+	        filter: {type: 'select'}
+	      },
+	      {
+	        header: '사업자 등록번호',
+	        align : 'right',
+	        name: 'actNum'
+	      },
+	      {
+	        header: '전화번호',
+	        align : 'right',
+	        name: 'actTel'
+	      }]
+	  });
+		return actModalGrid;
+   }
+	
+   
+	
+	
+    /*------------
+	// 거래처 Modal (조회 시, 사용)
+	----------------*/
+   function actGridInit2() {
+		let actModalGrid2 = new tui.Grid({
+	    el: document.getElementById('actModalGrid2'),
+	    bodyHeight: 200,
+	    rowHeaders: ['rowNum'],
+	    scrollX: false,
+	    scrollY: false,
+	    pageOptions: {
+            useClient: true,   // front에서만 페이징 하는 속성
+            perPage: 5
+          			},
+     	pagination : true,
+	    columns: [
+	      {
+	        header: '거래처 코드',
+	        width : 90,
+	        align : 'center',
+	        name: 'actCd'
+	      },
+	      {
+	        header: '거래처명',
+	        width : 90,
+	        align : 'left',
+	        name: 'actNm',
+	        filter: {type: 'select'}
+	      },
+	      {
+	        header: '사업자 등록번호',
+	        align : 'right',
+	        name: 'actNum'
+	      },
+	      {
+	        header: '전화번호',
+	        align : 'right',
+	        name: 'actTel'
+	      }]
+	  });
+		return actModalGrid2;
+  }
+	    
+
+   
+    /*------------
+	// 거래처 모달 클릭 (DB에서 데이터 가져오기) - 조회용
+	----------------*/
+	 function getActList() {
+   $('#actCd').on('click',function(){
+	   $.ajax({
+		   url:'/actListModal',
+		   dataType: "json",
+		   success : function(data) {
+			   actModalGrid2.resetData(data);
+		   },
+		   error : function(reject) {
+			   console.log(reject);
+		   }
+	   })
+	   actModalGrid2.refreshLayout();
+   });
+  }
+   
+    /*------------
+	// 거래처 모달 input 안에 데이터 가져오기
+	----------------*/
+   actModalGrid2.on('click', ev => {
+	   let rowData = actModalGrid2.getRow(ev.rowKey); // 거래처클릭한 그리드
+	   
+	   let cdVal = rowData['actCd'];
+	   let nmVal = rowData['actNm'];
+	   
+	   $('#actCd').val(cdVal);
+	   $('#actNm').val(nmVal);
+	   
+	   $('#actModal2').modal("hide");
+   })
+   
+   
+    /*------------
+	// 거래처 모달에서 가져온 데이터 행에 넣어주기
+	----------------*/
+   actModalGrid.on('click', ev => {
+	   
+	   let val = actModalGrid.getRow(ev.rowKey); // 거래처클릭한 그리드
+	   let val2 = grid.getFocusedCell().rowKey; // 진짜 큰 그리드
+	    
+	   	console.log(actModalGrid.getValue(ev.rowKey,ev.columnName));
+	    const amg = actModalGrid.getValue(ev.rowKey,ev.columnName);
+	    grid.setValue(val2, 'actCd', val.actCd);
+	    grid.setValue(val2, 'actNm', val.actNm);
+
+	    $('#actModal').modal("hide");
+   })
+	    
+   
+   
+    /*------------
+	// 제품명 Modal (행 추가 시, 사용)
+	----------------*/
+	function prdGridInit() {
+	const prdModalGrid = new tui.Grid({
+	    el: document.getElementById('prdModalGrid'),
+	    bodyHeight: 200,
+	    rowHeaders: ['rowNum'],
+	    pageOptions: {
+            useClient: true,   // front에서만 페이징 하는 속성
+            perPage: 5
+         			 },
+     	pagination : true,
+	    scrollX: false,
+	    scrollY: true,
+	    columns: [
+	      {
+	        header: '제품 코드',
+	        align : 'center',
+	        name: 'prdCd'
+	      },
+	      {
+	        header: '제품명',
+	        align : 'center',
+	        name: 'prdNm',
+	        filter: {type: 'select'}
+	      }
+	    ]
+	  });
+		return prdModalGrid;
+   }
+   
+   
+   
+    /*------------
+	// 제품명 Modal (조회 시, 사용)
+	----------------*/
+	function prdGridInit2() {
+	const prdModalGrid2 = new tui.Grid({
+	    el: document.getElementById('prdModalGrid2'),
+	    bodyHeight: 200,
+	    rowHeaders: ['rowNum'],
+	    scrollX: false,
+	    scrollY: true,
+	    pageOptions: {
+            useClient: true,   // front에서만 페이징 하는 속성
+            perPage: 5
+      			    },
+     	pagination : true,
+	    columns: [
+	      {
+	        header: '제품 코드',
+	        align : 'center',
+	        name: 'prdCd'
+	      },
+	      {
+	        header: '제품명',
+	        align : 'center',
+	        name: 'prdNm',
+	        filter: {type: 'select'}
+	      }
+	    ]
+	  });
+		return prdModalGrid2;
+   }
+   
+   
+	
+    /*------------
+	// 제품명 모달 클릭 (DB에서 데이터 가져오기) - 조회용
+	----------------*/
+	 function getPrdList() {
+   $('#prdCd').on('click',function(){
+	   $.ajax({
+		   url:'/prdListModal',
+		   dataType: "json",
+		   success : function(data) {
+			   prdModalGrid2.resetData(data);
+		   },
+		   error : function(reject) {
+			   console.log(reject);
+		   }
+	   })
+	   prdModalGrid2.refreshLayout();
+   });
+  }
+   
+	
+	
+    /*------------
+	// 제품명 모달 데이터 가져오기
+	----------------*/
+   prdModalGrid2.on('click', ev => {
+	   let rowData = prdModalGrid2.getRow(ev.rowKey); // 거래처클릭한 그리드
+	   
+	   let cdVal = rowData['prdCd'];
+	   let nmVal = rowData['prdNm'];
+	   
+	   $('#prdCd').val(cdVal);
+	   $('#prdNm').val(nmVal);
+	   
+	   $('#prdModal2').modal("hide");
+   })
+
+	   
+	   
+    /*------------
+	// 제품 모달에서 값 가져오기
+	----------------*/
+  	prdModalGrid.on('click', ev => {
+	   let val = prdModalGrid.getRow(ev.rowKey); // 거래처클릭한 그리드
+	  
+	   let val2 = grid.getFocusedCell().rowKey; // 진짜 큰 그리드
+	    
+	   	console.log(prdModalGrid.getValue(ev.rowKey,ev.columnName));
+	    const pmg = prdModalGrid.getValue(ev.rowKey,ev.columnName);
+	    grid.setValue(val2, 'prdCd', val.prdCd);
+	    grid.setValue(val2, 'prdNm', val.prdNm);
+
+	    $('#prdModal').modal("hide");
+   })
+	    
+   
+   
+	/*------------
+	// 엑셀 내보내기
+	----------------*/
+	function exportBtnHandler() {
+	   $('#exportBtn').on('click',function(){
+		   let options = {
+				     includeHeader : true,
+				     includeHiddenColumns : true,
+				     onlySelected : true,
+				     fileName: 'Order List'
+				   };
+	   grid.export('xlsx', options);
+	   });
+	 }
+   
+</script>
+</div>
+</body>
+</html>

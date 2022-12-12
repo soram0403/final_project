@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layout/layout}">
+<head>
+<meta charset="UTF-8">
+<title>YAMYAM</title>
+
+<style>
+#od-btn,#modalSaveBtn{
+	display: inline-block; margin: 0 5px; float: right;
+}
+#startpicker-input, #endpicker-input, #odCode, #prdName, #actCode{
+text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+
+	<div id="od-title">
+		<h3>완제품 출고 관리</h3>
+		<hr>
+	</div>
+	<div id="prdOutAd-content">
+		<div id="input-group">
+			<ul class="ul-style">
+    
+     		<li><label>주문일자</label>
+			    <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+			        <input id="startpicker-input" type="text" aria-label="Date">
+			        <span class="tui-ico-date"></span>
+			        <div id="startpicker-container" style="margin-left: -1px;"></div>
+			    </div>
+    			<span>-</span>
+			    <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+			        <input id="endpicker-input" type="text" aria-label="Date">
+			        <span class="tui-ico-date"></span>
+			        <div id="endpicker-container" style="margin-left: -1px;"></div>
+			    </div>
+			    
+	    <!-- 버튼 -->
+		<button class="btn btn-dark btn-sm" id="searchBtn">조회</button>
+		<button  class="btn btn-dark btn-sm" id="cancelBtn">초기화</button></li>
+          </ul>
+	    </div>
+	    
+	          <!-- 완제품 재고 현황 Modal -->
+      <div class="modal" id="lotSModal" tabindex="-1"
+         aria-labelledby="exampleModalLabel" aria-hidden="true">
+         <div class="modal-dialog">
+            <div class="modal-content">
+               <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">완제품 재고 현황</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"
+                     aria-label="Close"></button>
+               </div>
+               <div class="modal-body">
+               <button class="btn btn-dark btn-sm" id="modalSaveBtn">등록</button>
+               <div id="lotSModalGrid"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+	</div>	
+
+	<div id="od-content-2">
+				<h4>진행중인 주문서 현황
+				<img class="Magnifying-Glass-img" id="infoMandu" alt="image" src="../images/info.png" 
+		data-bs-toggle="tooltip" data-bs-placement="bottom" title="생산이 완료된 주문서">
+				</h4>	
+	<div id="grid"></div>
+
+	</div>
+	<br>
+	<div id="od-content-3">
+	<table>
+		<tr>
+			<td>
+				<h4>출고 등록 관리</h4>
+			</td>
+		</tr>
+			<tr>
+			<td>주문코드 : 
+			<input type="text" id="odCode" name="odCode" readonly="readonly"></td>
+			<td>거래처코드 : 
+			<input type="text" id="actCode" name="actCode" readonly="readonly"></td>
+			<td>제품명 : 
+			<input type="text" id="prdName" name="prdName" readonly="readonly"></td>
+		</tr>
+	</table>
+	<div id="od-btn">
+	<button class="btn btn-dark btn-sm" id="saveBtn">저장</button>
+	</div>
+	<div id="insertOutGrid"></div>
+		</div>
+
+<script>
+
+/* token */
+var token = $("meta[name='_csrf']").attr("content");
+var header = $("meta[name='_csrf_header']").attr("content");
+
+
+	/*------------
+	// function
+	----------------*/
+	getOrdIngList();							// DB에서 주문서목록 불러오기
+	searchBtnHandler();							// 조회 버튼 핸들러
+	cancelBtnHandler();							// 데이트피커 값 초기화 버튼
+	SaveBtnHandler();							// 저장 버튼 핸들러
+	
+	let grid = orderGridInit();					// 진행중인 주문서 Grid
+	let insertOutGrid = insertGridInit();		// 출고등록 Grid
+	
+	
+	/*------------
+	// 데이트피커
+	----------------*/
+	rangeDatepickerInit('#startpicker-input', '#startpicker-container','#endpicker-input','#endpicker-container')
+
+	
+	/*------------
+	// 조회버튼 이벤트 핸들러
+	----------------*/
+	function searchBtnHandler(){
+		$('#searchBtn').on('click',function(){
+			let getStartDate = $("#startpicker-input").val();
+			let getEndDate = $("#endpicker-input").val();
+			$.ajax({
+				   url:'/ingOrdList',
+				   contentType: 'application/json',
+				   dataType: "json",
+				   method: "GET",
+				   data : {
+					   "startDate" : getStartDate, "endDate" : getEndDate
+				   },
+				   success : function(data) {
+					   grid.resetData(data);
+				   },
+				   error : function(reject) {
+					   console.log(reject);
+				   }
+			   })
+		});
+	}
+	
+	
+	
+	/*------------
+	// 만두 Info
+	----------------*/
+	var exampleEl = document.getElementById('infoMandu')
+	var tooltip = new bootstrap.Tooltip(exampleEl, {placement:'right'})
+	$(document).ready(function(){
+	    $('[data-toggle="tooltip"]').tooltip();
+	});
+	
+	
+	
+	/*------------
+	// 주문 조회 초기화 버튼
+	----------------*/
+	function cancelBtnHandler(){
+		$('#cancelBtn').on('click',function(){
+			$("#startpicker-input").val(today);
+			$("#endpicker-input").val(today);
+			
+			$.ajax({
+				   url:'/ingOrdList',
+				   contentType: 'application/json',
+				   dataType: "json",
+				   method: "GET",
+				   success : function(data) {
+					   grid.resetData(data);
+				   },
+				   error : function(reject) {
+					   console.log(reject);
+				   }
+			   })
+		});	
+	}
+	
+	
+	
+    /*------------
+	// 진행중인 주문서 리스트 그리드
+	----------------*/
+	function orderGridInit(){
+	let grid = new tui.Grid({
+	    el: document.getElementById('grid'),
+	    rowHeaders: ['rowNum'],
+	    bodyHeight: 200,
+	    scrollX: false,
+	    scrollY: false,
+	    pageOptions: {
+            useClient: true,   // front에서만 페이징 하는 속성
+            perPage: 5
+      			    },
+     	pagination : true,
+	    columns: [
+	      {
+	        header: '주문 일자',
+	        align : 'center',
+	        name  : 'odDate'
+	      },
+	      {
+	        header: '주문 코드',
+	        align : 'center',
+	        name  : 'odCd'
+	      },
+	      {
+	        header: '제품 코드',
+	        align : 'center',
+	        name  : 'prdCd'
+	      },
+	      {
+	        header: '제품명',
+	        align : 'center',
+	        name  : 'prdNm',
+	        filter: {type: 'select'}
+	      },
+	      {
+	        header: '거래처명',
+	        align : 'left',
+	        name  : 'actNm',
+	        filter: {type: 'select'}
+	      },
+    	  {
+	        header: '거래처 코드',
+	        align : 'center',
+	        name  : 'actCd'
+	      },
+	      {
+	        header: '주문량',
+	        align : 'right',
+	        name  : 'odAmt'
+	      }
+	    ]
+	  });
+		return grid;
+    }
+	grid.hideColumn('actCd');
+    
+	/*------------
+	// 주문서 리스트 가져오기
+	----------------*/
+	  function getOrdIngList() {
+          $.ajax({
+             url : '/ingOrdList',
+             dataType : "json",
+             success : function(data) {
+            	 grid.resetData(data);
+             },
+             error : function(reject) {
+                console.log(reject);
+             }
+          })
+       }
+    
+  
+	/*------------
+	// 주문서 행 click 이벤트
+	----------------*/
+	
+	let ordOdAmt = 0;
+	let selectedRowKey = null;
+		grid.on('click', function(ev) {
+			if(ev.rowKey <0){
+	            return;
+	         }
+	         if(selectedRowKey>=0) {
+	        	 grid.removeRowClassName(selectedRowKey, 'cell-change');
+	           }
+	         selectedRowKey = ev.rowKey;
+	         grid.addRowClassName(selectedRowKey, 'cell-change');
+	         
+			let odCode = grid.getValue(ev.rowKey, 'odCd');
+			let prdName = grid.getValue(ev.rowKey, 'prdNm');
+			let prdCd = grid.getValue(ev.rowKey, 'prdCd');
+			let actCd = grid.getValue(ev.rowKey, 'actCd');
+			ordOdAmt = grid.getValue(ev.rowKey, 'odAmt');
+			
+			$('#odCode').val(odCode);
+			$('#actCode').val(actCd);
+			$('#prdName').val(prdName);
+			
+			let rowData = {prdLot:'', samt : '', bamt :'', bdates : '', 
+							podDate : '', edate : '', outEtc : ''};
+
+			$.ajax({
+				url : '/lotSListModal',
+				method: "GET",
+				data : {"odCd" : odCode, "prdCd" : prdCd},
+				contentType: 'application/json',
+				dataType : 'json',
+			}).then(res=>{
+				insertOutGrid.resetData(res);
+			})
+		}); // end click ev
+			
+		
+	/*------------
+	// 주문서 행 afterChange 이벤트
+	----------------*/
+	
+		insertOutGrid.on('afterChange', function(ev) {
+			console.log('ac');
+			
+			let bamtSum = insertOutGrid.getSummaryValues('bamt').sum;
+
+			let outList = insertOutGrid.getData();
+			let bamt = insertOutGrid.getColumnValues('bamt');
+			
+				if(ordOdAmt != bamtSum) {
+					toastr.options = {
+							  "closeButton": true,
+							  "newestOnTop": true,
+							  "positionClass": "toast-bottom-full-width",
+							  "preventDuplicates": true,
+							  "extendedTimeOut" : 0, 
+							  "timeOut" : 0
+					}
+					toastr.error('주문량과 출고량을 확인해주세요.');
+				}
+		});
+		
+
+	
+	
+	 /*------------
+	// 저장 버튼 클릭
+	----------------*/
+	function SaveBtnHandler(){
+		$('#saveBtn').on('click',function(){
+			insertOutGrid.blur();
+			let rowData = insertOutGrid.getCheckedRows();
+			let list = [];
+			let prdLot = '';
+			let samt = '';
+			let bamt = '';
+			let actCd = $('#actCode').val();
+			let odCd = $('#odCode').val();
+			console.log(odCd);
+			
+			for (let i=0; i<rowData.length; i++) {
+				let prdCd = rowData[i].prdCd;
+				let edate = rowData[i].edate;
+				let outEtc = rowData[i].outEtc;
+				prdLot = rowData[i].prdLot;
+				samt = rowData[i].samt;
+				bamt = rowData[i].bamt;
+				
+				list.push({prdLot,actCd,prdCd,odCd,edate,bamt,outEtc});
+				console.log(rowData[i].prdLot);
+			}
+			if(bamt > samt) {
+					toastr.options = {
+							  "closeButton": true,
+							  "newestOnTop": true,
+							  "positionClass": "toast-bottom-full-width",
+							  "preventDuplicates": true,
+							  "extendedTimeOut" : 0, 
+							  "timeOut" : 0
+					}
+					toastr.error('재고량보다 출고량이 많습니다.');
+				}else {
+				sweetConfirm('C', function(){
+							$.ajax({
+								url : '/insertOutList',
+								type : 'post',
+								contentType: 'application/json',
+								data: JSON.stringify(list),
+								dataType : 'json',
+								beforeSend : function (xhr) {
+								    xhr.setRequestHeader(header, token);
+								},
+								 success : function(result) {
+					                 if(result > 0){
+					                	 Swal.fire(
+					       			          '등록이 완료되었습니다.'	);
+					                	 insertOutGrid.clear();
+					                	 getOrdIngList();
+					                	 $('#odCode').val('');
+					         			$('#actCode').val('');
+					         			$('#prdName').val('');
+					                 }else {
+					                	 Swal.fire(
+					                			 '등록이 실패하였습니다.');
+					                 }
+					              },
+					              error : function(reject) {
+					                 console.log(reject);
+					              }
+					}) // end ajax
+				}) // end sweet
+			}	// end if
+		})	// end click
+   }	// end function
+	 
+	 
+	 
+    
+    
+    /*------------
+	// 출고 등록 그리드
+	----------------*/
+    function insertGridInit() {
+	let insertOutGrid = new tui.Grid({
+	    el: document.getElementById('insertOutGrid'),
+	    rowHeaders: ['checkbox','rowNum'],
+	    bodyHeight: 150,
+	    scrollX: false,
+	    scrollY: false,
+	    pageOptions: {
+            useClient: true,   // front에서만 페이징 하는 속성
+            perPage: 5
+      			    },
+     	pagination : true,
+	    columns: [
+	      {
+	        header: '완제품LOT',
+	        align : 'center',
+	        name  : 'prdLot'
+	      },
+	      {
+	        header: '제품 코드',
+	        align : 'center',
+	        name  : 'prdCd'
+	      },
+	      {
+	        header: '재고량',
+	        align : 'right',
+	        name  : 'samt'
+	      },
+	      {
+	        header: '출고량',
+	        align : 'right',
+	        name  : 'bamt',
+        	editor: 'text',
+			validation: {
+			     dataType: 'number',
+			     required: true
+			      }
+			      
+	      },
+	      {
+	        header: '출고 일자',
+	        align : 'center',
+	        name  : 'bdates'
+	      },
+	      {
+	        header: '제조 일자',
+	        align : 'center',
+	        name  : 'podDate'
+	      },
+	      {
+	        header: '유통기한',
+	        align : 'center',
+	        name  : 'edate'
+	      },
+	      {
+	        header: '비고',
+	        align : 'left',
+	        name  : 'outEtc',
+	        editor: 'text'
+	      }
+	      
+	    ],
+	    summary: {
+            height: 40,
+            position: 'bottom', // or 'top'
+            columnContent: {
+              bamt: {
+                template: function(valueMap) {
+                  return `TOTAL: ${valueMap.sum}`;
+                }
+              }
+            }
+          }
+	  });
+	  	return insertOutGrid;
+	 }
+    insertOutGrid.hideColumn('bdates');
+    insertOutGrid.hideColumn('prdCd');
+   
+	
+
+	
+	
+	
+</script>
+</div>
+</body>
+</html>

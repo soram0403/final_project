@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layout/layout}">
+<head>
+<meta charset="UTF-8">
+<title>YAMYAM</title>
+
+<style>
+#od-btn {
+	display: inline-block; margin: 0 5px; float: right;
+}
+#prdNm, #prdNm2, #lot, #lot2, #startpicker-input, #endpicker-input {
+text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+	<div id="od-title">
+		<h3>완제품 출고 조회</h3>
+		<hr>
+	</div>
+	
+	 <div id="prdOutList-content">
+      <div id="input-group">
+         <ul class="ul-style">
+
+	 <li><label for="prdNm">제품명</label><input type="text" 
+            data-bs-toggle="modal" data-bs-target="#prdModal" id="prdNm">
+            <img class="Magnifying-Glass-img" alt="image" src="../images/Magnifying_Glass.png">
+            <input type="text" class="back" id="prdNm2" readonly><br></li>
+            
+        <li><label for="lot">완제품LOT</label><input type="text" 
+            data-bs-toggle="modal" data-bs-target="#lotModal" id="lot">
+            <img class="Magnifying-Glass-img" alt="image" src="../images/Magnifying_Glass.png">
+            <input type="text" class="back" id="lot2" readonly><br></li>     
+            
+        <li><label>제조일자</label>
+	
+	    <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+	        <input id="startpicker-input" type="text" aria-label="Date">
+	        <span class="tui-ico-date"></span>
+	        <div id="startpicker-container" style="margin-left: -1px;"></div>
+	    </div>
+	    <span>-</span>
+	    <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+	        <input id="endpicker-input" type="text" aria-label="Date">
+	        <span class="tui-ico-date"></span>
+	        <div id="endpicker-container" style="margin-left: -1px;"></div>
+	    </div>
+	
+		<button class="btn btn-dark btn-sm" id="searchBtn">조회</button>
+		<button  class="btn btn-dark btn-sm" id="cancelBtn">초기화</button></li>
+		</ul>    
+            
+           <!-- 제품명 Modal -->
+      <div class="modal" id="prdModal" tabindex="-1"
+         aria-labelledby="exampleModalLabel" aria-hidden="true">
+         <div class="modal-dialog">
+            <div class="modal-content">
+               <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">제품 목록</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"
+                     aria-label="Close"></button>
+               </div>
+               <div class="modal-body">
+               <div id="prdModalGrid"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+      
+      <!-- 완제품 Modal -->
+      <div class="modal" id="lotModal" tabindex="-1"
+         aria-labelledby="exampleModalLabel" aria-hidden="true">
+         <div class="modal-dialog">
+            <div class="modal-content">
+               <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">완제품LOT NO</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"
+                     aria-label="Close"></button>
+               </div>
+               <div class="modal-body">
+               <div id="lotModalGrid"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+	</div>
+</div>
+
+	<div id="od-btn">
+	<button class="btn btn-dark btn-sm" id="exportBtn">엑셀 파일 출력</button>
+	</div>
+	
+<div id="grid"></div>
+
+<script>
+	
+/* token */
+var token = $("meta[name='_csrf']").attr("content");
+var header = $("meta[name='_csrf_header']").attr("content");
+
+
+	/*------------
+	// function
+	----------------*/
+	getOrdOutList(); 					// DB에서 출고내역 리스트 불러오기
+	getPrdList();						// DB에서 제품명 Modal 불러오기
+	getLotList();						// DB에서 완제품LOT Modal 불러오기
+	
+	searchBtnHandler(); 				// 조회 버튼 핸들러
+	cancelBtnHandler(); 				// input 값 초기화 버튼
+	exportBtnHandler(); 				// 엑셀출력 버튼 핸들러
+	
+	let grid = MainGridInit(); 			// 출고 내역 리스트 grid
+	let prdModalGrid = prdGridInit(); 	// 제품 Modal Gird
+	let lotModalGrid = lotGridInit(); 	// 완제품LOT Modal Gird
+	
+	
+	/*------------
+	// 데이트피커
+	----------------*/
+	rangeDatepickerInit('#startpicker-input', '#startpicker-container','#endpicker-input','#endpicker-container')
+
+	
+	/*------------
+	// 조회버튼 이벤트 핸들러
+	----------------*/
+	function searchBtnHandler(){
+		$('#searchBtn').on('click',function(){
+			let getPrdCd = $("#prdNm").val();
+			let getLot = $("#lot").val();
+			let getStartDate = $("#startpicker-input").val();
+			let getEndDate = $("#endpicker-input").val();
+				$.ajax({
+				   url:'/ordOutList',
+				   contentType: 'application/json',
+				   dataType: "json",
+				   method: "GET",
+				   data : {
+					   "prdCd" : getPrdCd, "prdLot" : getLot,
+					   "startDate" : getStartDate, "endDate" : getEndDate
+				   },
+				   success : function(data) {
+					   grid.resetData(data);
+					   console.log(getLot);
+				   },
+				   error : function(reject) {
+					   console.log(reject);
+				   }
+			   })
+			
+		});
+	}
+
+
+	
+	/*------------
+	// 주문 조회 초기화 버튼
+	----------------*/
+	function cancelBtnHandler(){
+		$('#cancelBtn').on('click',function(){
+			$("#startpicker-input").val(today);
+			$("#endpicker-input").val(today);
+			$("#prdNm").val("");
+			$("#prdNm2").val("");
+			$("#lot").val("");
+			$("#lot2").val("");	
+			$.ajax({
+	             url : '/ordOutList',
+	             dataType : "json",
+	             success : function(data) {
+	                grid.resetData(data);
+	             },
+	             error : function(reject) {
+	                console.log(reject);
+	             }
+	          })
+		});	
+	}
+	
+	
+	/*------------
+	// 출고 내역 리스트 그리드
+	----------------*/
+	function MainGridInit() {
+		let grid = new tui.Grid({
+		    el: document.getElementById('grid'),
+		    rowHeaders: ['rowNum'],
+		    scrollX: false,
+		    scrollY: false,
+		    pageOptions: {
+                useClient: true,   // front에서만 페이징 하는 속성
+                perPage: 10
+          			    },
+         	pagination : true,
+		    columns: [
+		      {
+		        header: '출고 코드',
+		        align : 'center',
+		        name: 'outNo'
+		      },
+		      {
+		        header: '완제품LOT',
+		        align : 'center',
+		        name: 'prdLot'
+		      },
+		      {
+		        header: '제품명',
+		        align : 'center',
+		        name: 'prdNm'
+		      },
+		      {
+		        header: '거래처명',
+		        align : 'left',
+		        name: 'actNm'
+		      },
+		      {
+		        header: '출고량',
+		        align : 'right',
+		        name: 'bamt'
+		      },
+		      {
+		        header: '출고 일자',
+		        align : 'center',
+		        name: 'bdates'
+		      },
+		      {
+		        header: '유통기한',
+		        align : 'center',
+		        name: 'edate'
+		      },
+		      {
+		        header: '비고',
+		        align : 'left',
+		        width: '200',
+		        name: 'outEtc'
+		      }
+		    ]
+		  });
+			return grid;
+	}
+	  
+	
+	
+	/*------------
+	// 출고 내역 주문서 리스트 가져오기
+	----------------*/
+	  function getOrdOutList() {
+          $.ajax({
+             url : '/ordOutList',
+             dataType : "json",
+             success : function(data) {
+                grid.resetData(data);
+             },
+             error : function(reject) {
+                console.log(reject);
+             }
+          })
+       }
+	
+	
+	/*------------
+	// 제품명 Modal
+	----------------*/
+	function prdGridInit() {
+		let prdModalGrid = new tui.Grid({
+		    el: document.getElementById('prdModalGrid'),
+		    bodyHeight: 200,
+		    rowHeaders: ['rowNum'],
+		    scrollX: false,
+		    scrollY: false,
+		    pageOptions: {
+                useClient: true,   // front에서만 페이징 하는 속성
+                perPage: 5
+          			    },
+         	pagination : true,
+		    columns: [
+		      {
+		        header: '제품코드',
+		        align : 'center',
+		        name: 'prdCd'
+		      },
+		      {
+		        header: '제품명',
+		        align : 'center',
+		        name: 'prdNm'
+		      }
+		    ]
+		  });
+			return prdModalGrid;
+	}
+	
+	
+	/*------------
+	// 제품명 모달 클릭 (DB에서 데이터 가져오기)
+	----------------*/
+	function getPrdList(){
+	$('#prdNm').on('click',function(){
+		   $.ajax({
+			   url:'/prdListModal',
+			   dataType: "json",
+			   success : function(data) {
+				   prdModalGrid.resetData(data);
+			   },
+			   error : function(reject) {
+				   console.log(reject);
+			   }
+		   })
+		   prdModalGrid.refreshLayout();
+	 });
+	}
+	
+	
+	 /*------------
+	// 제품명 모달 데이터 가져오기
+	----------------*/
+	prdModalGrid.on('click', ev => {
+   let rowData = prdModalGrid.getRow(ev.rowKey);
+   
+   let cdVal = rowData['prdCd'];
+   let nmVal = rowData['prdNm'];
+   
+   $('#prdNm').val(cdVal);
+   $('#prdNm2').val(nmVal);
+   
+   $('#prdModal').modal("hide");
+  		});
+
+   
+	/*------------
+	// LOT Modal
+	----------------*/
+	function lotGridInit() {
+	let lotModalGrid = new tui.Grid({
+	    el: document.getElementById('lotModalGrid'),
+	    bodyHeight: 200,
+	    rowHeaders: ['rowNum'],
+	    scrollX: false,
+	    scrollY: false,
+	    pageOptions: {
+            useClient: true,   // front에서만 페이징 하는 속성
+            perPage: 5
+      			    },
+     	pagination : true,
+	    columns: [
+	      {
+	        header: '완제품LOT',
+	        align : 'center',
+	        name  : 'prdLot'
+	      },
+	      {
+	        header: '제품명',
+	        align : 'center',
+	        name  : 'prdNm'
+	      },
+	      {
+	        header: '유통기한',
+	        align : 'center',
+	        name  : 'edate'
+	      }
+	    ]
+	  });
+	return lotModalGrid;
+	 }
+	
+	
+	/*------------
+	// LOT 모달 클릭
+	----------------*/
+	function getLotList(){
+	$('#lot').on('click',function(){
+		$.ajax({
+			   url:'/lotListModal',
+			   dataType: "json",
+			   success : function(data) {
+				   lotModalGrid.resetData(data);
+			   },
+			   error : function(reject) {
+				   console.log(reject);
+			   }
+		   })
+		   lotModalGrid.refreshLayout();
+	 });
+	}
+
+	/*------------
+	// LOT 모달 데이터 가져오기
+	----------------*/
+	lotModalGrid.on('click', ev => {
+	   let rowData = lotModalGrid.getRow(ev.rowKey);
+	   
+	   let noVal = rowData['prdLot'];
+	   let nmVal = rowData['prdNm'];
+	   
+	   $('#lot').val(noVal);
+	   $('#lot2').val(nmVal);
+	   
+	   $('#lotModal').modal("hide");
+   		});
+
+   
+	/*------------
+	// 엑셀 내보내기
+	----------------*/
+	function exportBtnHandler() {
+		$('#exportBtn').on('click',function(){
+		   let options = {
+				     includeHeader : true,
+				     includeHiddenColumns : true,
+				     onlySelected : true,
+				     fileName: 'lot Out List'
+				   };
+	   grid.export('xlsx', options);
+	   });
+	}
+
+</script>
+</div>
+</body>
+</html>

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layout/layout}">
+
+<div class="container" layout:fragment="content">
+	<div id="mat-od-title">
+		<h3>자재 반품 조회</h3>
+	</div>
+	<hr>
+	<ul class="ul-style">
+		<li><label for="matNm">자재명</label><input id="matNm"
+			data-bs-toggle="modal" data-bs-target="#matModal" readonly> <img
+			class="Magnifying-Glass-img" alt="image" data-bs-toggle="modal"
+			data-bs-target="#matModal" src="../images/Magnifying_Glass.png">
+			<input type="text" id="matCd" data-bs-toggle="modal"
+			data-bs-target="#matModal" readonly></li>
+		<li><label for="actNm">업체명</label><input id="actNm"
+			data-bs-toggle="modal" data-bs-target="#actModal" readonly> <img
+			class="Magnifying-Glass-img" alt="image" data-bs-toggle="modal"
+			data-bs-target="#actModal" src="../images/Magnifying_Glass.png">
+			<input type="text" id="actCd" data-bs-toggle="modal"
+			data-bs-target="#actModal" readonly></li>
+			
+		<!-- Date Picker -->
+		<li><label for="startpicker-input">반품요청일</label>
+			<div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+				<input id="startpicker-input" type="text" aria-label="Date">
+				<span class="tui-ico-date"></span>
+				<div id="startpicker-container" style="margin-left: -1px;"></div>
+			</div> <span>-</span>
+			<div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+				<input id="endpicker-input" type="text" aria-label="Date"> <span
+					class="tui-ico-date"></span>
+				<div id="endpicker-container" style="margin-left: -1px;"></div>
+			</div>
+			<button class="btn btn-dark btn-sm" id="searchBtn">조회</button>
+			<button class="btn btn-dark btn-sm" id="resetBtn">초기화</button></li>
+	</ul>
+
+	<div id="grid"></div>
+
+	<!-- 자재 목록 모달 -->
+	<div class="modal" id="matModal" tabindex="-1"
+		aria-labelledby="matModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="matModalLabel">자재 목록</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"
+						aria-label="Close" id="matCloseBtn"></button>
+				</div>
+				<div class="modal-body">
+					<div>
+						<div id="modalGrid3"></div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+	</div>
+	
+	<!-- 업체 목록 모달 -->
+	<div class="modal" id="actModal" tabindex="-1"
+		aria-labelledby="actModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="actModalLabel">업체 목록</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"
+						aria-label="Close" id="actCloseBtn"></button>
+				</div>
+				<div class="modal-body">
+					<div>
+						<div id="modalGrid2"></div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<script th:inline="javascript">
+	/* token */
+	var token = $("meta[name='_csrf']").attr("content");
+	var header = $("meta[name='_csrf_header']").attr("content");
+	
+	let grid = matReList();				// 반품재고리스트 그리드
+	
+	let modalGrid2 = actList();			// 업체목록 리스트 모달
+	let modalGrid3 = matList();			// 자재목록 리스트 모달
+	
+	matModalClickFn();					// 자재목록 모달 클릭 이벤트
+	actModalClickFn();					// 업체목록 모달 클릭 이벤트
+	
+	resetBtnEvent();					// 초기화버튼 이벤트
+	SearchBtnFn();						// 조회버튼 이벤트
+	
+	modalRef();							// 모달 리프레쉬
+	datePicker();						// datepicker
+	
+	
+	/*------------------------------
+	// 반품재고 리스트 그리드
+	--------------------------------*/
+	function matReList(){
+		  let grid = new tui.Grid({
+	      el: document.getElementById('grid'),
+		  pageOptions: {
+			    useClient: true,
+			    perPage: 12
+			  	},
+	      bodyHeight: 480,
+	      data: [[${mtrReList}]],
+	      rowHeaders: ['rowNum'],
+	      scrollX: false,
+	      scrollY: true,
+	      columns: [
+		        {
+			          header: '발주코드',
+			          name: 'matOdCd',
+			          align: 'center',
+			          sortable: true,
+				      filter: {
+				    	  type: 'text'
+				      }
+			        },
+			        {
+			          header: '자재코드',
+			          name: 'mtrCd',
+				      align: 'center',
+			          sortable: true,
+				      filter: {
+				    	  type: 'text'
+				      }
+			        },
+			        {
+			          header: '자재명',
+			          name: 'mtrNm',
+				      align: 'center',
+			          sortable: true,
+				      filter: {
+				    	  type: 'text'
+				      }
+			        },
+			        {
+			          header: '업체명',
+			          name: 'actNm',
+				      align: 'center',
+			          sortable: true,
+				      filter: {
+				    	  type: 'text'
+				      }
+			        },
+			        {
+			          header: '검사일자',
+			          name: 'matChkDate',
+			          align: 'center',
+			          sortable: true,
+				      filter: {
+				    	  type: 'text'
+				      }
+			        },
+			        {
+			            header: '불량내용',
+			            name: 'erInfo',
+					    align: 'center',
+				          sortable: true,
+					      filter: {
+					    	  type: 'text'
+					      }
+			        },
+			        {
+			          header: '반품수량',
+			          name: 'matRtAmt',
+				      align: 'center',
+			          sortable: true,
+				      filter: {
+				    	  type: 'text'
+				      }
+			        },
+			        {
+			          header: '반품요청일',
+			          name: 'matRtDate',
+			          align: 'center',
+			          sortable: true,
+				      filter: {
+				    	  type: 'text'
+				      }
+			        }
+			      ]
+	    });
+	
+	    return grid;
+	}
+	
+	/*------------------------------
+	// 자재 목록 모달
+	--------------------------------*/
+	function matList(){
+		let modalGrid3 = new tui.Grid({
+			el: document.getElementById('modalGrid3'),
+			bodyHeight: 250,
+			data: [[${matList}]],
+			rowHeaders: ['rowNum'],
+			scrollX: false,
+			scrollY: true,
+			columns: [{
+		          header: '자재코드',
+		          name: 'mtrCd',
+		          align: 'center',
+		          sortable: true,
+				  filter: {
+						 type: 'select'			  
+						 }
+		        },
+		        {
+		          header: '자재명',
+		          name: 'mtrNm',
+		          align: 'center',
+				  filter: {
+						 type: 'select'			  
+						 }
+		        }
+	      	] 
+		});
+			return modalGrid3;
+	}
+	
+	/*------------------------------
+	// 업체 목록 모달
+	--------------------------------*/
+	function actList(){
+		let modalGrid2 = new tui.Grid({
+			el: document.getElementById('modalGrid2'),
+			bodyHeight: 250,
+			data: [[${actList}]],
+			rowHeaders: ['rowNum'],
+			scrollX: false,
+			scrollY: true,
+			columns: [
+				{
+					header: '업체 코드',
+					name: 'actCd',
+					align: 'center',
+					sortable: true,
+					  filter: {
+							 type: 'select'			  
+							 }
+				},
+				{
+					header: '업체명',
+					name: 'actNm',
+					align: 'center',
+					sortable: true,
+					  filter: {
+							 type: 'select'			  
+							 }
+				}
+			]
+		});
+		return modalGrid2;
+	}
+	
+	
+	/*------------------------------
+	// 자재목록 모달 클릭 이벤트
+	--------------------------------*/
+	function matModalClickFn() {
+		document.getElementById('modalGrid3').addEventListener('click', function() {
+			let data = modalGrid3.getData();
+			let val = modalGrid3.getFocusedCell().rowKey;
+			
+			document.getElementById('matNm').value = data[val].mtrNm;
+			document.getElementById('matCd').value = data[val].mtrCd;
+			
+			matCloseBtn.click();
+		})
+	}
+	
+	/*------------------------------
+	// 업체목록 모달 클릭 이벤트
+	--------------------------------*/
+	function actModalClickFn() {
+		document.getElementById('modalGrid2').addEventListener('click', function() {
+			let data = modalGrid2.getData();
+			let val = modalGrid2.getFocusedCell().rowKey;
+			
+			document.getElementById('actNm').value = data[val].actNm;
+			document.getElementById('actCd').value = data[val].actCd;
+			
+			actCloseBtn.click();
+		})
+	}
+	
+	/*------------------------------
+	// 모달 그리드 리프레쉬
+	--------------------------------*/
+	function modalRef(){
+		document.addEventListener('shown.bs.modal', function (){
+			modalGrid2.refreshLayout();
+		}, '.modal');
+		
+		document.addEventListener('shown.bs.modal', function (){
+			modalGrid3.refreshLayout();
+		}, '.modal');
+	}
+	
+	/*--------------------------------
+	// 조회 버튼 클릭 시 조건조회 그리드 등장
+	----------------------------------*/
+	function SearchBtnFn() {
+		document.getElementById('searchBtn').addEventListener('click',function(){
+			let matOdCd = document.getElementById('matCd').value; // 자재 코드
+			let actNm = document.getElementById('actNm').value; // 업체 이름
+			let matInDate = document.getElementById('startpicker-input').value; // 시작 날짜
+			let matEdate = document.getElementById('endpicker-input').value; // WHERE절 비교 용으로 유통기한에 end Date담음
+			
+			let data = {mtrCd: matOdCd, actNm: actNm, matInDate: matInDate, matEdate: matEdate};
+			
+			$.ajax({
+				url: 'matReturnSearch',
+				method: 'POST',
+				contentType: 'application/JSON',
+				data: JSON.stringify(data),
+				beforeSend : function (xhr) {
+				    xhr.setRequestHeader(header, token);
+				},
+				success: function(result){
+					grid.resetData(result)
+				},
+				error: function(reject) {
+					console.log(reject);
+				}
+			})
+		})
+	}
+	
+	/*------------------------
+	// 초기화버튼 이벤트
+	--------------------------*/
+	function resetBtnEvent() {
+		document.getElementById('resetBtn').addEventListener('click',function(){
+			document.getElementById('startpicker-input').value = null;
+			document.getElementById('endpicker-input').value = null;
+			
+			document.getElementById('matCd').value = '';
+			document.getElementById('matNm').value = '';
+			document.getElementById('actNm').value = '';
+			document.getElementById('actCd').value = '';
+		});	
+	}
+	
+	/*------------
+	// datepicker
+	----------------*/
+	 function datePicker() {
+		 rangeDatepickerInit('#startpicker-input', '#startpicker-container','#endpicker-input','#endpicker-container');
+			document.getElementById('startpicker-input').value = null;
+			document.getElementById('endpicker-input').value = null;
+	   }
+	
+		
+	</script>
+</div>

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layout/layout}">
+
+<head>
+<meta charset="UTF-8">
+<title>YAMYAM</title>
+<style>
+
+</style>
+</head>
+
+<body>
+	<!-- 본문 시작 -->
+	<div layout:fragment="content" class="container">
+	<div class="row">
+		<h3>공정 실적 조회</h3>
+		<hr>
+		<table style="width: 100%;">
+			<tr>
+				<td style="width: 140px;">생산 지시 코드 &nbsp;</td>
+				<td><input type="text" name="orderCd" id="orderCd"></td>
+			</tr>
+			<tr>
+				<td style="width: 140px;">공정명 &nbsp;</td>
+				<td><input type="text" name="prName" id="prName"></td>
+			</tr>
+			<tr>
+				<td style="width: 140px;">불량분류 &nbsp;</td>
+				<td>
+					<select id="errPro" name="errPro">
+					<option th:each="eCode : ${eCode}" th:text="${eCode.commdNm}" th:value="${eCode.commdCd}"></option>								
+					</select>
+				</td>
+			</tr>
+			
+			<tr>
+				<td style="width: 80px">계획일자 &nbsp;</td>
+				<td>
+					<!-- date-picker -->
+					<div id ="modalDate"
+						class="tui-datepicker-input tui-datetime-input tui-has-focus">
+						<input id="startpicker-input" type="text" aria-label="Date">
+						<span class="tui-ico-date"></span>
+						<div id="startpicker-container" style="margin-left: -1px;"></div>
+					</div> <span>-</span>
+					<div
+						class="tui-datepicker-input tui-datetime-input tui-has-focus">
+						<input id="endpicker-input" type="text" aria-label="Date">
+						<span class="tui-ico-date"></span>
+						<div id="endpicker-container" style="margin-left: -1px;"></div>
+					</div>
+					<button type="button" id="searchBtn" class="btn btn-dark btn-sm">검색</button>
+					<button type="button" id="cancelBtn" class="btn btn-dark btn-sm">초기화</button>
+					<th:block sec:authorize="hasAnyAuthority('JOB-GRD1', 'JOB-GRD2')">
+						<button type="button" id="updateBtn" class="btn btn-dark btn-sm">저장</button>
+					</th:block>
+				</td>
+				<td></td>
+			</tr>
+		</table>
+	</div>
+	<div class="row">
+		<div id="grid"></div>
+	</div>
+	
+	<!-- 생산지시목록 모달 -->
+	<div class="modal" id="orderModal" tabindex="-1">
+		<div class="modal-dialog modal-xl" >
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 class="modal-title">생산지시 목록</h4>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"	aria-label="Close" id="close_modal"></button>
+				</div>
+				<div class="modal-body">
+					<table>
+						<tr>
+							<td style="width: 80px">지시 기간 &nbsp;</td>
+							<td id ="modalDate">
+								<!-- date-picker -->
+								<div
+									class="tui-datepicker-input tui-datetime-input tui-has-focus">
+									<input id="startpicker-i" type="text" aria-label="Date">
+									<span class="tui-ico-date"></span>
+									<div id="startpicker-c" style="margin-left: -1px;"></div>
+								</div> <span>-</span>
+								<div
+									class="tui-datepicker-input tui-datetime-input tui-has-focus">
+									<input id="endpicker-i" type="text" aria-label="Date">
+									<span class="tui-ico-date"></span>
+									<div id="endpicker-c" style="margin-left: -1px;"></div>
+								</div>
+								<button type="button" id="mSBtn" class="btn btn-dark btn-sm">검색</button>
+								<button type="button" id="mCBtn" class="btn btn-dark btn-sm">초기화</button>
+							</td>
+						</tr>
+					</table>
+						
+					<div>
+						<div id="orModalGrid"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<!-- 공정목록 모달 -->
+	<div class="modal" id="pModal" tabindex="-1">
+		<div class="modal-dialog modal-xl" >
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 class="modal-title">공정 목록</h4>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"	aria-label="Close" id="close_modal"></button>
+				</div>
+				<div class="modal-body">
+					<table>
+						<tr>
+							<td style="width: 80px">공정 분류 &nbsp;</td>
+							<td>
+								<select id="pList" name="pList">
+							    <option th:each="pCode : ${pCode}" th:text="${pCode.commdNm}" th:value="${pCode.commdCd}"></option>						
+								</select>
+							</td>
+							<td>
+								<button type="button" id="pRBtn" class="btn btn-dark btn-sm">초기화</button>
+							</td>
+						</tr>
+					</table>
+						
+					<div>
+						<div id="pModalGrid"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	
+	<!-- 불량코드 모달 -->
+	<div class="modal" id="eModal" tabindex="-1">
+		<div class="modal-dialog" >
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 class="modal-title">불량코드 목록</h4>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"	aria-label="Close" id="close_modal"></button>
+				</div>
+				<div class="modal-body">					
+					<div>
+						<div id="eModalGrid"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+<script>
+	/* token */
+	var token = $("meta[name='_csrf']").attr("content");
+	var header = $("meta[name='_csrf_header']").attr("content");
+
+	let grid = gridInit()					// 실적조회 grid 초기화
+	let orModalGrid = orModalGridInit();	// 생산지시목록 모달 grid
+	let pModalGrid = pModalGridInit();		// 공정목록 모달 grid
+	let eModalGrid = eModalGridInit(); 		// 불량코드 모달 grid
+	
+	cancelBtnHandler();  	  // date picker input 값 초기화 버튼
+	searchBtnHandler();	 	  // date picker input 값 조회 버튼
+	orderCdClickHandler();	  // 생산지시코드 input 클릭 이벤트
+	prNameClickHandler();     // 공정명 input 클릭 이벤트
+	mSBtnHandler();			  // date picker 값 조회 버튼 (생산지시모달 그리드)
+	mCBtnHandler();			  // date picker 값 초기화 버튼 (생산지시모달 그리드)
+	orModalClickHandler(); 	  // 생산지시목록 모달 grid 클릭 이벤트
+	pRBtnHandler();			  // 공정분류 선택 초기화 이벤트
+	pModalClickHandler();	  // 공정목록 모달 grid 클릭 이벤트
+	gridClick(); 			  // 생산지시 그리드 클릭 이벤트(불량코드 모달 오픈)
+	eModalClickHandler();	  // 불량코드 모달 그리드 클릭 이벤트
+	selectChange();			  // select 옵션 변경시 조회
+	updateBtnhandler();  	  // 수정버튼 이벤트
+	
+	/*------------
+	// date-picker
+	----------------*/
+	// 실적조회
+	rangeDatepickerInit('#startpicker-input', '#startpicker-container','#endpicker-input','#endpicker-container')
+	// 생산지시목록 모달
+	rangeDatepickerInit('#startpicker-i', '#startpicker-c','#endpicker-i','#endpicker-c')
+	
+	/*------------
+	// 공정실적조회 grid
+	----------------*/
+	
+	function gridInit(){
+		let grid = new tui.Grid({
+			el: document.getElementById('grid'),
+			scrollX: false,
+			scrollY: false,
+			pageOptions: {
+			    useClient: true,	// front에서만 페이징 하는 속성
+			    perPage: 8
+			  },
+			pagination : true,
+			rowHeaders: ['rowNum'],
+			columns: [
+				{
+					header: '상세생산지시코드',
+					name: 'poddCd'
+				},
+				{
+					header: '생산공정코드',
+					name: 'pproCd'
+				},
+				{
+					header: '설비코드',
+					name: 'eqpCd',
+					width : '90',
+					align : 'center'
+				},
+				{
+					header: '설비명',
+					name: 'eqpNm',
+					align : 'center'
+				},
+				{
+					header: '투입량',
+					name: 'pproInAmt',
+					width : '80',
+					align : 'right'
+				},
+				{
+					header: '생산량',
+					name: 'pproOtAmt',
+					width : '80',
+					align : 'right'
+				},
+				{
+					header: '불량량',
+					name: 'pproErAmt',
+					width : '80',
+					align : 'right'
+				},
+				{
+					header: '불량코드',
+					name: 'pproErCd',
+					align : 'center'
+				},
+				{
+					header: '불량상세',
+					name: 'pproErDtl'
+				},
+				{
+					header: '시작시간',
+					name: 'pproSTime',
+					width : '150',
+					align : 'right'
+				},
+				{
+					header: '종료시간',
+					name: 'pproETime',
+					width : '150',
+					align : 'right'
+				},
+				{
+					header: '담당자',
+					name: 'pproEmpNm',
+					width : '70',
+					align : 'center'
+				},
+				{
+					header: '지시일자',
+					name: 'podDates',
+					width : '90',
+					align : 'right'
+				}
+			]
+		});
+		
+		$.ajax({
+			url : '/getProResult',
+			method: "GET",			
+		}).then(res=>{
+			grid.resetData(res);
+		})
+		return grid;
+	}
+	
+	grid.on('mouseover', function(ev){
+		grid.addColumnClassName('pproErCd','cell-pointer');
+	})
+	
+	
+	/*------------
+	// 공정실적 조회 그리드 클릭 이벤트
+	----------------*/
+	function gridClick(){
+		let selectedRowKey = null;
+		grid.on('click',function(ev){
+			if(ev.rowKey <0){
+				return;
+			}
+			if(selectedRowKey>=0) {
+				grid.removeRowClassName(selectedRowKey, 'cell-change');
+			  }
+			selectedRowKey = ev.rowKey;
+			grid.addRowClassName(selectedRowKey, 'cell-change');
+			let erCd = grid.getFocusedCell().value;
+			console.log(erCd);
+			if(ev.columnName =='pproErCd'){
+				$.ajax({
+					url : '/getErrorList',
+					method: "GET",			
+				}).then(res=>{
+					console.log(res);
+					eModalGrid.resetData(res);
+				})
+				
+	   			$('#eModal').modal('show');
+	   			
+	   			eModalGrid.refreshLayout();
+	   		}
+		})
+	}
+	
+	/*------------
+	// 생산지시목록 모달 grid
+	----------------*/
+	
+	function orModalGridInit(){
+		let orModalGrid = new tui.Grid({
+			el: document.getElementById('orModalGrid'),
+			scrollX: false,
+			scrollY: false,
+			pageOptions: {
+			    useClient: true,	// front에서만 페이징 하는 속성
+			    perPage: 8
+			  },
+			pagination : true,
+			rowHeaders: ['rowNum'],
+			columns: [
+				{
+					header: '생산지시코드',
+					name: 'podCd'
+				},
+				{
+					header: '상세지시코드',
+					name: 'poddCd'
+				},
+				{
+					header: '제품명',
+					name: 'prdNm'
+				},
+				{
+					header: '생산량',
+					name: 'poddAmt'
+				},
+				{
+					header: '지시등록일자',
+					name: 'podDates'
+				},
+			]
+		});
+		$.ajax({
+			url : '/viewOrderList',
+			method: "GET",			
+		}).then(res=>{
+			orModalGrid.resetData(res);
+		})
+
+		return orModalGrid;
+	}
+	
+	
+	/*------------
+	// 공정목록 모달 grid
+	----------------*/
+	
+	function pModalGridInit(){
+		let pModalGrid = new tui.Grid({
+			el: document.getElementById('pModalGrid'),
+			scrollX: false,
+			scrollY: false,
+			pageOptions: {
+			    useClient: true,	// front에서만 페이징 하는 속성
+			    perPage: 8
+			  },
+			pagination : true,
+			rowHeaders: ['rowNum'],
+			columns: [
+				{
+					header: '공정코드',
+					name: 'pproCd'
+				},
+				{
+					header: '공정명',
+					name: 'pproName'
+				},
+				{
+					header: '설비코드',
+					name: 'eqpCd'
+				},
+				{
+					header: '설비명',
+					name: 'eqpNm'
+				}
+			]
+		});
+		return pModalGrid;
+	}
+	
+	/*------------
+	// 불량코드 모달 grid
+	----------------*/
+	
+	function eModalGridInit(){
+		let eModalGrid = new tui.Grid({
+			el: document.getElementById('eModalGrid'),
+			scrollX: false,
+			scrollY: false,
+			rowHeaders: ['rowNum'],
+			columns: [
+				{
+					header: '불량코드',
+					name: 'pproErCd'
+				},
+				{
+					header: '불량상세',
+					name: 'pproErDtl'
+				}
+			]
+		});
+		return eModalGrid;
+	}
+	
+	
+	/*------------
+	// 생산지시목록 모달 grid 클릭 이벤트
+	----------------*/
+	function orModalClickHandler(){
+		orModalGrid.on('click', (ev) => {
+	
+			let podCd = orModalGrid.getValue(ev.rowKey, 'podCd')
+			$('#orderCd').attr("value",podCd);
+			if(podCd != null){
+					$('#orderModal').modal('hide');
+			}	
+			
+		
+		});
+	}
+	
+	
+	/*------------
+	// 공정목록목록 모달 grid 클릭 이벤트
+	----------------*/
+	function pModalClickHandler(){
+		pModalGrid.on('click', (ev) => {
+	
+			let pproName = pModalGrid.getValue(ev.rowKey, 'pproName')
+			$('#prName').attr("value",pproName);
+			
+			if(pproName != null){
+				$('#pModal').modal('hide');
+			}		
+		});
+	}
+	
+	/*------------
+	// 검색버튼 이벤트 핸들러
+	----------------*/
+	function searchBtnHandler(){
+
+		$('#searchBtn').on('click',function(){
+			// 지시코드
+			let podCd = $('#orderCd').val();
+			// 공정명
+			let pproName = $('#prName').val();
+			// 불량분류
+			let pproErCd = $('select[name=errPro] option:selected').val();
+			// 계획일자
+			let getStartDay = $("#startpicker-input").val();
+			let getEndDay = $("#endpicker-input").val();
+				$.ajax({
+					url : '/getProResult',
+					method: "GET",
+					contentType: 'application/json',
+					dataType : 'json',
+					data : {"podCd" : podCd, "pproName" : pproName, "pproErCd" : pproErCd, "startDate" : getStartDay, "endDate" : getEndDay}
+					}).then(res=>{ grid.resetData(res);	})
+		})
+	}
+
+	
+	
+	/*------------
+	// select 옵션 변경시 조회
+	----------------*/
+	function selectChange(){
+		$('#pList').on('change',function(){
+			let pproSts = $('select[name=pList] option:selected').val(); // 공정분류 선택값
+			
+			$.ajax({
+				url : '/flowProgress',
+				contentType: 'application/json',
+				dataType : 'json',
+				data : {"pproSts" : pproSts},
+				method: "GET",
+				success : function(data){pModalGrid.resetData(data);},
+				error : function(reject){console.log(reject);}				
+			})
+		});
+	}
+	
+	
+	/*------------
+	// 공정분류 선택 초기화 핸들러
+	----------------*/
+	function pRBtnHandler(){
+
+		$('#pRBtn').on('click',function(){
+			
+			$.ajax({
+				url : '/flowProgress',
+				contentType: 'application/json',
+				dataType : 'json',
+				method: "GET",
+				success : function(data){pModalGrid.resetData(data);},
+				error : function(reject){console.log(reject);}				
+			})
+		})
+	}
+	
+	
+	/*------------
+	// datePicker 초기화버튼 이벤트 핸들러
+	----------------*/
+	function cancelBtnHandler(){
+		$('#cancelBtn').on('click',function(){
+
+			$("#startpicker-input").val(today);
+			$("#endpicker-input").val(today);
+			$.ajax({
+				url : '/getProResult',
+				method: "GET",			
+			}).then(res=>{
+				grid.resetData(res);
+			})
+		});	
+	}
+	
+	
+	/*------------
+	// 생산지시목록 클릭 버튼 이벤트 핸들러
+	----------------*/
+	function orderCdClickHandler(){
+		// 모달 클릭 버튼 이벤트
+		$('#orderCd').on('click',function(){
+	
+			 $("#orderModal").modal("show");
+
+			// 모달이 로드 되는데 시간이 걸리므로 인터벌 걸어주기
+			setInterval(function(){
+				orModalGrid.refreshLayout()
+				},100);	
+		});
+	}
+	
+	
+	
+	/*------------
+	// 공정명 클릭 버튼 이벤트 핸들러
+	----------------*/
+	function prNameClickHandler(){
+		// 모달 클릭 버튼 이벤트
+		$('#prName').on('click',function(){
+	
+			$("#pModal").modal("show");
+			$.ajax({
+				url : '/flowProgress',
+				contentType: 'application/json',
+				dataType : 'json',
+				method: "GET",
+				success : function(data){pModalGrid.resetData(data);},
+				error : function(reject){console.log(reject);}				
+			})
+			// 모달이 로드 되는데 시간이 걸리므로 인터벌 걸어주기
+			setInterval(function(){
+				pModalGrid.refreshLayout()
+				},100);	
+		});
+	}
+	
+	
+	
+	/*------------
+	// 불량코드 모달 grid 클릭 이벤트
+	----------------*/
+	function eModalClickHandler(){
+		eModalGrid.on('click', (ev) => {
+			let pproErCd = eModalGrid.getValue(ev.rowKey, 'pproErCd')
+			let pproErDtl = eModalGrid.getValue(ev.rowKey, 'pproErDtl')
+			let gRowKey = grid.getFocusedCell().rowKey; // 진짜 큰 그리드
+			grid.setValue(gRowKey, 'pproErCd', pproErCd);
+			grid.setValue(gRowKey, 'pproErDtl', pproErDtl);
+			$('#eModal').modal('hide');
+		});
+	}
+	
+	
+	
+	/*------------
+	// 검색버튼 이벤트 핸들러
+	----------------*/
+	function mSBtnHandler(){
+
+		$('#mSBtn').on('click',function(){
+			
+			// 계획일자
+			let getStartDay = $("#modalDate div #startpicker-i").val();
+			let getEndDay = $("#modalDate div #endpicker-i").val();
+			
+			$.ajax({
+				url : '/viewOrderList',
+				data : {"startDate" : getStartDay, "endDate" : getEndDay},
+				contentType: 'application/json',
+				dataType : 'json',
+				method: "GET",
+				success : function(data){orModalGrid.resetData(data);},
+				error : function(reject){console.log(reject);}				
+			})
+		})
+	}
+	
+	
+	/*------------
+	// 모달창의 datePicker 초기화버튼 이벤트 핸들러
+	----------------*/
+	function mCBtnHandler(){
+		$('#mCBtn').on('click',function(){
+
+			$("#startpicker-input").val(today);
+			$("#endpicker-input").val(today);
+		});	
+	}
+	
+	
+	/*------------
+	// 수정 버튼 클릭(에러코드 변경)
+	----------------*/		
+	function updateBtnhandler(){
+		$('#updateBtn').on('click',function(){
+				sweetConfirm('U', function(){
+					let mData = grid.getModifiedRows().updatedRows;
+					let pproCd ='';
+					let preDate = '';
+					let pproErCd = '';
+					let pproErDtl = '';
+					
+					let list = [];
+					
+					for(let i =0; i<mData.length; i++){
+						pproCd = mData[i].pproCd;
+						preDate = mData[i].preDate;
+						pproErCd = mData[i].pproErCd;
+						pproErDtl = mData[i].pproErDtl;
+						
+						list.push({pproCd,preDate,pproErCd,pproErDtl});
+					}
+					
+					$.ajax({
+						url : '/updateError',
+						method: 'POST',
+						contentType : 'application/json',
+						data :  JSON.stringify(list),
+						dataType : 'json',
+						beforeSend : function (xhr) {
+						    xhr.setRequestHeader(header, token);
+						},
+						success : function(data){
+								  Swal.fire('저장 완료되었습니다');
+								  location.reload();
+								},
+						error : function(reject){
+								console.log(reject);
+								// 실패
+								Swal.fire('저장 실패했습니다.');	
+						}			 		  
+					});	
+				})
+		});	
+	}
+
+</script>		
+</div>
+</body>
+</html>

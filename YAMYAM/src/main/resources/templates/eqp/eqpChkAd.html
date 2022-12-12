@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layout/layout}">
+
+<head>
+<meta charset="UTF-8">
+<title>YAMYAM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.10.7/dayjs.min.js"></script>
+<style type="text/css">
+	#eqpTable {
+		margin-left: 40px;
+		margin-top: 30px;
+		height: 230px;
+	}
+	
+	#eqpTable th {
+		width: 90px;
+	}
+	
+	#eqpTable input[type="text"] {
+		margin-right: 20px;
+	}
+	
+	input#eqpTypeCd,
+	input#eqpTypeNm {
+		background-color: gainsboro;
+		width: 100px;
+	}
+	
+	#eqpTable tr {
+		border-bottom: 1px #C9BABA solid;
+		border-top: 1px #C9BABA solid;
+	}
+</style>
+</head>
+
+<body>
+	<div class="container" layout:fragment="content">
+		<h3>설비 점검 관리</h3>
+		<hr>
+		
+		<div>
+			<div style="margin-top:10px">
+				<form action="" onsubmit="return false" id="form">
+					<ul class="ul-style">
+						<li>
+							<label for="searchEqpType">설비구분</label>
+							<!-- <select th:each="type : eqpTypes" 사용해서 option태그 반복 -->
+							<select name="eqpType" id="searchEqpType" class="form-select-sm" style="margin-right: 50px">
+								<option value="">전체</option>
+								<option th:each="eqpType : ${eqpTypeList}" th:value="${eqpType.commdCd}" th:text="${eqpType.commdNm}"></option>
+						    </select>
+							<label for="searchEqpChkRst">판정구분</label>
+							<select name="chkRst" id="searchEqpChkRst" class="form-select-sm">
+								<option value="">전체</option>
+								<option th:each="chkRst : ${eqpChkRstList}" th:value="${chkRst.commdCd}" th:text="${chkRst.commdNm}"></option>
+						    </select>
+						</li>
+	
+						<!-- Date Picker -->
+						<li>
+							<label for="startpicker-input">점검일자</label>
+							<div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+								<input id="startpicker-input" type="text" name="startDate" aria-label="Date">
+								<span class="tui-ico-date"></span>
+								<div id="startpicker-container" style="margin-left: -1px;"></div>
+							</div>
+							<span>-</span>
+							<div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+								<input id="endpicker-input" type="text" name="endDate" aria-label="Date">
+								<span class="tui-ico-date"></span>
+								<div id="endpicker-container" style="margin-left: -1px;"></div>
+							</div>
+							<button id="eqpChkSearch" class="btn btn-dark btn-sm">조회</button>
+							<button id="clearSearchBox" class="btn btn-dark btn-sm">초기화</button>
+							<th:block sec:authorize="hasAnyAuthority('JOB-GRD1', 'JOB-GRD2')">
+								<button id="deleteChecked" class="btn btn-dark btn-sm" style="float:right">삭제</button>
+								<button id="insertEqpChk" class="btn btn-dark btn-sm" style="float:right; margin-right:5px;">저장</button>
+								<button id="updateEqpChk" class="btn btn-dark btn-sm" style="float:right; margin-right:5px;">수정</button>
+								<button id="eqpTypeSearch" class="btn btn-dark btn-sm"
+									data-bs-toggle="modal" data-bs-target="#eqpToChkModal"style="float:right; margin-right:30px;">설비 조회</button>
+							</th:block>
+						</li>
+					</ul>
+				</form>
+				<!-- eqpChkGrid -->
+				<div id="eqpChkGrid"></div>
+			</div>
+		</div>
+		
+		
+		<!-- 설비조회 modal -->
+		<div class="modal" id="eqpToChkModal" tabindex="-1"
+			aria-labelledby="#eqpToChkModalLabel" aria-hidden="true">
+			<div class="modal-dialog modal-lg modal-dialog-centered">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="eqpToChkModalLabel">점검 대상 설비</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal"
+							aria-label="Close" id="eqpToChkModalClose"></button>
+					</div>
+					<div class="modal-body">
+						<div>
+							남은 설비 점검일수
+							<input type="number" id="leftDays" value="0">
+							<button class="btn btn-dark btn-sm" id="findEqpToChk">조회</button>
+							<button class="btn btn-dark btn-sm" id="resetLeftDays">초기화</button>
+						</div>
+						<div>
+							<div id="eqpToChkModalGrid"></div>
+						</div>
+						<div align="center">
+							<button class="btn btn-dark btn-sm" id="addEqpToChk">추가</button>
+							<button class="btn btn-dark btn-sm" data-bs-dismiss="modal" id="cancel">취소</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		 <!-- 설비 직원 목록 Modal -->
+        <div class="modal" id="eqpEmpModal" tabindex="-1"
+           aria-labelledby="eqpEmpModalLabel" aria-hidden="true">
+           <div class="modal-dialog">
+              <div class="modal-content">
+                 <div class="modal-header">
+                    <h5 class="modal-title" id="eqpEmpModalLabel">설비 직원 목록</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                       aria-label="Close" id="closeEqpEmpModal"></button>
+                 </div>
+                 <div class="modal-body">
+                 <div id="eqpEmpModalGrid"></div>
+                 </div>
+              </div>
+           </div>
+        </div>
+		
+		<script type="text/javascript">
+			/* token */
+			var token = $("meta[name='_csrf']").attr("content");
+			var header = $("meta[name='_csrf_header']").attr("content");
+		
+			datePickerInit();									//datepicker
+			let eqpChkGrid = eqpChkGridInit(); 					// 설비 점검 그리드 초기화
+			let eqpToChkModalGrid = eqpToChkModalGridInit();	// 금일 점검 대상 설비 모달 grid 초기화
+			let eqpEmpModalGrid = eqpEmpModalGridInit();		// 설비 직원 모달 grid 초기화
+			
+			eqpChkGridData();									// 설비 점검 데이터 초기화
+			eqpToChkModalGridData(0);							// 점검 대상 설비 데이터 초기화(당일)
+			eqpEmpModalData();									// 설비 직원 데이터 초기화
+			
+			eqpChkSearch();										// 조회버튼 누르면 결과값 가져와서 eqpChkGrid에 뿌려주기
+			clearSearchBox();									// 초기화버튼 클릭시 selectbox, datepicker칸 초기화 
+			deleteChecked();									// 삭제버튼 누를시 체크된 row 삭제
+			insertEqpChk();										// 저장 버튼 누를 시 체크된 행을 등록
+			updateEqpChk();										// 수정 버튼 누를 시 체크된 행을 수정
+			
+			eqpToChkModalRefresh();								// 점검 대상 설비 모달 시 eqpToChkModalGrid refreshLayout
+			findEqpToChk();										// 점검 대상 설비 모달의 조회 버튼 이벤트(남은 점검일수만큼 뿌려주기)
+			resetLeftDays();									// 점검 대상 설비 모달의 초기화 버튼 이벤트(input 지우고 당일치로 초기화)
+			addEqpToChk();										// 점검 대상 설비 모달의 추가 버튼 이벤트(체크한 것을 eqpChkGrid에 행추가)			
+			eqpToChkModalGridCancel();							// 점검 대상 설비 모달의 취소 버튼 이벤트(input 지우고 당일로 초기화)
+			
+			
+			// toastr
+			toastr.options = {
+				    "closeButton": false,
+				    "newestOnTop": true,
+				    "positionClass": "toast-top-center",
+				    "preventDuplicates": true,
+				    "extendedTimeOut" : 1500, 
+				    "timeOut" : 2500
+			}
+			
+			
+			/*------------
+			datepicker
+			----------------*/	
+			function datePickerInit() {
+				// toast - datepicker
+				rangeDatepickerInit('#startpicker-input', '#startpicker-container','#endpicker-input','#endpicker-container')
+			}
+			
+			
+			
+			/* ---------------
+			설비 점검 그리드 초기화
+			--------------- */
+			function eqpChkGridInit() {
+			
+				let eqpChkGrid = new tui.Grid({
+				      el: document.getElementById('eqpChkGrid'),
+				      bodyHeight: 480, // 스크롤
+				      rowHeaders: ['checkbox'],
+				      scrollX: false,
+				      scrollY: true,
+				      pageOptions: {
+				    	  useClient: true,
+				    	  perPage: 12
+				      },
+				      columns: [
+				        {
+				          header: '설비코드',
+				          name: 'eqpCd',
+					      align: 'center',
+					      filter: {
+					    	  type: 'text'
+					      }
+				        },
+				        {
+				          header: '설비명',
+				          name: 'eqpNm',
+					      align: 'left'
+				        },
+				        {
+				          header: '설비구분',
+				          name: 'eqpType',
+					      align: 'center'
+				        },
+				        {
+				          header: '점검주기(일수)',
+				          name: 'chkCycle',
+					      align: 'right',
+					      validation: {
+					          dataType: 'number'
+					      }
+				        },
+				        {
+				          header: '점검일자',
+				          name: 'chkDate',
+					      sortable: true,
+					      align: 'center',
+					      editor: {
+					          type : 'datePicker',
+				        	  options: {
+						          format: 'yyyy-MM-dd',
+						          language : 'ko'
+						      }
+					      },
+					      validation: {
+							  dataType: 'datePicker',
+							  required: true
+						  }
+				        },
+				        {
+				          header: '차기점검일자',
+				          name: 'nextChkDate',
+					      sortable: true,
+					      align: 'center'
+				        },
+				        {
+				          header: '판정',
+				          name: 'chkRst',
+					      align: 'center',
+					      editor: {
+					            type: 'radio',
+					            options: {
+					              listItems: [
+					                { text: '합격', value: '합격' },
+					                { text: '불합격', value: '불합격' },
+					                { text: '보류', value: '보류' }
+					              ]
+					            }
+					        }
+				        },
+				        {
+				          header: '점검내역',
+				          name: 'chkRecord',
+					      align: 'left',
+					      editor: {
+					    	  type: 'text'
+					      }
+				        },
+				        {
+				          header: '점검담당자번호',
+				          name: 'chkEmp',
+					      align: 'center',
+					      validation: {
+					          dataType: 'number'
+					      }
+				        },
+				        {
+				          header: '점검담당자명',
+				          name: 'chkEmpNm',
+					      align: 'center',
+				        }
+				      ]
+				});
+				
+				/*------------
+				// 점검담당자번호, 점검담당자명 grid 선택시 설비직원 모달창 띄우기
+				----------------*/
+				eqpChkGrid.on('click',function(ev){
+					// grid header에는 이벤트 제외 
+					if(ev.rowKey == undefined){
+			            return false;
+			        }
+					
+			   		if(ev.columnName =='chkEmp' || ev.columnName =='chkEmpNm'){
+			   			$('#eqpEmpModal').modal('show');
+			   			eqpEmpModalGrid.refreshLayout();
+			   		}
+			   	});
+				
+				/*------------
+				점검일자, 점검담당자번호, 점검담당자명 grid에 mouseover 시 포인터표시
+				----------------*/
+				eqpChkGrid.on('mouseover', function(ev){
+					eqpChkGrid.addColumnClassName('chkDate','cell-pointer');
+					eqpChkGrid.addColumnClassName('chkEmp','cell-pointer');
+					eqpChkGrid.addColumnClassName('chkEmpNm','cell-pointer');
+				})
+				
+				/*------------
+				설비점검 그리드의 점검일자 값이 입력되면 차기점검일자가 자동으로 입력됨.
+				----------------*/
+				eqpChkGrid.on('afterChange', function(ev) {
+					let change = ev.changes[0];						// change 발생한 row정보
+					let rowData = eqpChkGrid.getRow(change.rowKey); // change 발생한 eqpChkGrid row정보
+					eqpChkGrid.check(change.rowKey);				// change 발생한 row check해주기
+					
+					if (change.columnName == 'chkDate' && change.value != '') {
+						/* day.js 날짜 연산에 편함.					
+						let date = dayjs('2022-11-26', "YYYY-MM-DD");
+						let calculDate = date.add(5, 'day');
+						calculDate.format('YYYY-MM-DD')); => '2022-12-01'
+						*/
+						
+						let chkDate = dayjs(change.value, 'YYYY-MM-DD');
+						let nextChkDate = chkDate.add(rowData.chkCycle, 'day');
+						
+						eqpChkGrid.setValue(change.rowKey, 'nextChkDate', nextChkDate.format('YYYY-MM-DD'));
+					}
+					
+				})
+				
+				return eqpChkGrid;
+			}
+			
+			
+			
+			/* ---------------
+			금일 점검 대상 설비 모달 grid 초기화
+			--------------- */
+			function eqpToChkModalGridInit() {
+				let eqpToChkModalGrid = new tui.Grid({
+					el: document.getElementById('eqpToChkModalGrid'),
+					bodyHeight: 300,
+					rowHeaders: ['checkbox'],
+					scrollX: false,
+					scrollY: true,
+					columns: [
+						{
+				          header: '설비코드',
+				          name: 'eqpCd',
+				          align: 'center',
+				          type: 'hidden'
+				        },
+				        {
+				          header: '설비명',
+				          name: 'eqpNm',
+				          align: 'left'
+				        },
+				        {
+				          header: '설비 구분',
+				          name: 'eqpType',
+				          align: 'left'
+				        },
+				        {
+				          header: '마지막점검일자',
+				          name: 'chkDate',
+				          align: 'right'
+				        },
+				        {
+				          header: '차기점검일자',
+				          name: 'nextChkDate',
+				          align: 'right'
+				        },
+				        {
+				          header: '점검주기',
+				          name: 'chkCycle',
+				          align: 'right',
+					      validation: {
+					          dataType: 'number'
+					      }
+				        }
+			        ] 
+				});
+				
+				eqpToChkModalGridData(-100);
+				
+				return eqpToChkModalGrid;
+			}
+			
+			
+			/* ---------------
+			설비 직원 모달 grid 초기화
+			--------------- */
+			function eqpEmpModalGridInit() {
+				let eqpEmpModalGrid = new tui.Grid({
+					el: document.getElementById('eqpEmpModalGrid'),
+					bodyHeight: 300,
+					rowHeaders: ['rowNum'],
+					scrollX: false,
+					scrollY: true,
+					columns: [
+						{
+				          header: '점검담당자번호',
+				          name: 'chkEmp',
+				          align: 'center',
+					      validation: {
+					          dataType: 'number'
+					      }
+				        },
+				        {
+				          header: '점검담당자명',
+				          name: 'chkEmpNm',
+				          align: 'left'
+				        }
+			        ] 
+				});
+				
+				/*------------
+			    설비 직원 모달에서 가져온 데이터 설비점검 그리드에 넣어주기
+			    ----------------*/
+			    eqpEmpModalGrid.on('click', ev => {
+				    let rowKey1 = eqpChkGrid.getFocusedCell().rowKey; // 클릭한 설비 점검 행
+				    let rowData2 = eqpEmpModalGrid.getRow(ev.rowKey);  // 클릭한 설비 직원 행
+				    
+				    eqpChkGrid.setValue(rowKey1, 'chkEmp', rowData2.chkEmp);
+				    eqpChkGrid.setValue(rowKey1, 'chkEmpNm', rowData2.chkEmpNm)
+					
+				    document.getElementById('closeEqpEmpModal').click();
+			   })
+				
+				return eqpEmpModalGrid;
+			}
+			
+			
+			
+			
+			/*------------
+			설비 점검 데이터 초기화
+			----------------*/
+			function eqpChkGridData() {
+				$.ajax({
+					url:'/getChkList',
+					dataType: 'json',
+					success: function (data) {
+						eqpChkGrid.resetData(data);
+					},
+					error: function (reject) {
+						console.log(reject);
+					}
+				});
+			}
+			
+			
+			/*------------
+			점검 대상 설비 데이터 초기화
+			----------------*/
+			function eqpToChkModalGridData(days) {
+				$.ajax({
+					url:'/getEqpToChkList',
+					type: 'post',
+					data: {'days' : days},
+					dataType: 'json',
+					beforeSend : function(xhr){
+		           		xhr.setRequestHeader(header, token);
+		           	},
+					success: function (data) {
+						eqpToChkModalGrid.resetData(data);
+						eqpToChkModalGrid.refreshLayout();
+					},
+					error: function (reject) {
+						console.log(reject);
+					}
+				});
+			}
+			
+
+			
+			/*------------
+			설비 직원 데이터 초기화
+			----------------*/
+			function eqpEmpModalData() {
+				$.ajax({
+					url:'/getEqpEmpList',
+					dataType: 'json',
+					success: function (data) {
+						eqpEmpModalGrid.resetData(data);
+						eqpEmpModalGrid.refreshLayout();
+					},
+					error: function (reject) {
+						console.log(reject);
+					}
+				});
+			}
+			
+			
+			/* ---------------
+			점검 대상 설비 모달의 조회 버튼 이벤트(남은 점검일수만큼 뿌려주기)
+			--------------- */
+			function findEqpToChk() {
+				document.getElementById('findEqpToChk').addEventListener('click', function () {
+					let days = document.getElementById('leftDays').value;
+					
+					// 미 입력시 0으로 입력
+					if (days == '') {
+						days = 0;
+					}
+					
+					eqpToChkModalGridData(days);
+				})
+			}
+			
+			
+			
+			/* ---------------
+			점검 대상 설비 모달의 초기화 버튼 이벤트(input 지우고 당일로 초기화)
+			--------------- */
+			function resetLeftDays() {
+				document.getElementById('resetLeftDays').addEventListener('click', function () {
+					document.getElementById('leftDays').value = '0';
+					eqpToChkModalGridData(0);
+				})
+			}
+			
+			
+			
+			/* ---------------
+			점검 대상 설비 모달의 취소 버튼 이벤트(input 지우고 당일로 초기화)
+			--------------- */
+			function eqpToChkModalGridCancel() {
+				document.getElementById('cancel').addEventListener('click', function () {
+					document.getElementById('leftDays').value = '0';
+					eqpToChkModalGridData(0);
+				});
+			}
+			
+			
+			
+			/* ---------------
+			점검 대상 설비 모달의 추가 버튼 이벤트(체크한 것을 eqpChkGrid에 행추가)
+			--------------- */
+			function addEqpToChk() {
+				document.getElementById('addEqpToChk').addEventListener('click', function () {
+					let rowData = eqpToChkModalGrid.getCheckedRows();
+					
+					if (rowData.length == 0) {
+						toastr.warning('점검 대상 설비를 선택해주세요.');
+						return;
+					}
+					
+					for (let i = 0; i < rowData.length; i++) {
+						rowData[i].chkDate = '';
+						rowData[i].nextChkDate = '';
+						rowData[i].chkRst = '합격';
+					}
+					// 설비점검그리드 비우기
+					eqpChkGrid.clear();
+					
+					eqpChkGrid.appendRows(rowData);
+					eqpChkGrid
+					document.getElementById('eqpToChkModalClose').click();
+				})
+			}
+			
+			
+			
+			
+			
+			/* ---------------
+			조회버튼 누르면 결과값 가져와서 eqpChkGrid에 뿌려주기
+			--------------- */
+			function eqpChkSearch() {
+				document.getElementById('eqpChkSearch').addEventListener('click', function () {
+					let form = document.getElementById('form');
+					let formData = new FormData(form);
+					
+					$.ajax({
+						url:'/findEqpChkList',
+						type : "post",
+			            processData : false,
+			            contentType : false,
+			            data : formData,
+						dataType: 'json',
+						beforeSend : function(xhr){
+			           		xhr.setRequestHeader(header, token);
+			           	},
+						success: function (data) {
+							eqpChkGrid.resetData(data);
+							eqpChkGrid.refreshLayout();
+						},
+						error: function (reject) {
+							console.log(reject);
+						}
+					});
+					
+					
+					// ajax로 설비구분과 설비점검일 범위를 들고가서 결과값 가져온 뒤에 eqpChkGrid에 resetData()해준다.
+				});
+			}
+			
+			
+			
+			/* ---------------
+			초기화버튼 클릭시 selectbox, datepicker칸 초기화
+			--------------- */
+			function clearSearchBox() {
+				document.getElementById('clearSearchBox').addEventListener('click', function () {
+					document.getElementById('searchEqpType').value = '';
+					document.getElementById('searchEqpChkRst').value = '';
+					
+					document.getElementById('startpicker-input').value = today;
+					document.getElementById('endpicker-input').value = today;
+					
+					eqpChkGrid.clear();	// eqpChkGrid 비워주기
+				});
+			}
+			
+			
+			/* ---------------
+			금일 점검 대상 설비 모달 시 eqpToChkModalGrid refreshLayout
+			--------------- */
+			function eqpToChkModalRefresh() {
+				document.addEventListener('shown.bs.modal', function (){
+					eqpToChkModalGrid.refreshLayout('');
+				});
+			}
+			
+			
+			
+			/* ---------------
+			삭제버튼 누를시 체크된 row 삭제
+			--------------- */
+			function deleteChecked() {
+				document.getElementById('deleteChecked').addEventListener('click', function () {
+					let rowDatas = eqpChkGrid.getCheckedRows();
+					
+					// 체크하지 않았을 시 체크하도록 유도
+					if (rowDatas.length == 0) {
+						toastr.warning('삭제할 점검을 먼저 체크해주세요.');
+						return;
+					}
+					
+					sweetConfirm('D', function () {
+						$.ajax({
+							url:'/deleteEqpChk',
+							type: 'post',
+							contentType: 'application/json',
+							data: JSON.stringify(rowDatas),
+							beforeSend : function(xhr){
+				           		xhr.setRequestHeader(header, token);
+				           	},
+							success: function (data) {
+								if (data > 0) {
+									toastr.success('정상적으로 삭제되었습니다.');
+								} else {
+									toastr.error('삭제에 실패했습니다.');  		
+								}
+								
+								eqpChkGrid.uncheckAll();
+								eqpChkGridData();
+								eqpToChkModalGridData(-100); // 점검대상설비 일주일치
+							},
+							error: function (reject) {
+								console.log(reject);
+							}
+						});						
+					});
+					
+				});
+			}
+			
+			
+			
+			/* ---------------
+			저장 버튼 누를 시 체크된 행을 등록
+			--------------- */
+			function insertEqpChk() {
+				eqpChkGrid.blur();
+				document.getElementById('insertEqpChk').addEventListener('click', function () {
+					let rowDatas = eqpChkGrid.getCheckedRows();
+					
+					// 체크하지 않았을 시 체크하도록 유도
+					if (rowDatas.length == 0) {
+						toastr.warning('추가할 점검을 먼저 체크해주세요.');
+						return;
+					}
+					
+					// 값을 모두 입력했는지 체크
+					for (let i = 0; i < rowDatas.length; i++) {
+						if (rowDatas[i].chkDate == '' || rowDatas[i].chkRecord == '' || rowDatas[i].chkEmp == '') {
+							toastr.warning('값을 모두 입력해주세요.');
+							return false;
+						} 
+					}
+					
+					
+					sweetConfirm('C', function () {
+						$.ajax({
+							url:'/insertEqpChk',
+							type: 'post',
+							contentType: 'application/json',
+							data: JSON.stringify(rowDatas),
+							dataType: 'json',
+							beforeSend : function(xhr){
+				           		xhr.setRequestHeader(header, token);
+				           	},
+							success: function (data) {
+								if (data > 0) {
+									toastr.success('정상적으로 등록되었습니다.');
+									eqpChkGrid.uncheckAll();
+									eqpChkGridData();
+									eqpToChkModalGridData(-100); // 점검대상설비 일주일치
+								} else {
+									toastr.error('등록에 실패했습니다.');	
+								}
+								
+							},
+							error: function (reject) {
+								console.log(reject);
+							}
+						});
+					});
+					
+				});
+			}
+			
+			
+			/* ---------------
+			저장 버튼 누를 시 체크된 행을 수정
+			--------------- */
+			function updateEqpChk() {
+				eqpChkGrid.blur();
+				document.getElementById('updateEqpChk').addEventListener('click', function () {
+					let rowDatas = eqpChkGrid.getCheckedRows();
+					
+					// 체크하지 않았을 시 체크하도록 유도
+					if (rowDatas.length == 0) {
+						toastr.warning('수정할 점검을 먼저 체크해주세요.');
+						return;
+					}
+					
+					// 값을 모두 입력했는지 체크
+					for (let i = 0; i < rowDatas.length; i++) {
+						if (rowDatas[i].chkDate == '' || rowDatas[i].chkRecord == '' || rowDatas[i].chkEmp == '') {
+							toastr.warning('값을 모두 입력해주세요.');
+							return false;
+						} 
+					}
+					
+					sweetConfirm('U', function () {
+						
+						$.ajax({
+							url:'/updateEqpChk',
+							type: 'post',
+							contentType: 'application/json',
+							data: JSON.stringify(rowDatas),
+							dataType: 'json',
+							beforeSend : function(xhr){
+				           		xhr.setRequestHeader(header, token);
+				           	},
+							success: function (data) {
+								if (data > 0) {
+									toastr.success('정상적으로 수정되었습니다.');
+									eqpChkGrid.uncheckAll();
+									eqpChkGridData();
+									eqpToChkModalGridData(0); // 점검대상설비 일주일치
+								} else {
+									toastr.error('수정에 실패했습니다.');	
+								}
+								
+							},
+							error: function (reject) {
+								console.log(reject);
+							}
+						});
+						  
+					});
+					
+				});
+			}
+		</script>
+	</div>
+
+</body>
+
+</html>

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layout/layout}">
+
+<head>
+<meta charset="UTF-8">
+<title>YAMYAM</title>
+<style>
+.btn2 {
+	padding : 10px;
+	margin : 5px;
+	width : 90px;
+}
+.row {
+	margin-bottom : 20px;
+	margin-top : 30px;
+}
+.info-img {
+	width :23px;
+	height : 23px;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.10.7/dayjs.min.js"></script>
+</head>
+
+<body>
+	<!-- 본문 시작 -->
+	<div layout:fragment="content" class="container"> 
+		<h3>생산 관리</h3>
+		<hr>
+	<div class="row">
+		<div>
+		<h4 style="display:inline;">진행생산지시</h4>
+		<img class="info-img" alt="image" src="../images/info.png" id="proInfo" data-bs-toggle="tooltip" data-bs-html="true" title="자재 출고가 완료된 생산지시 목록이 출력됩니다.">
+		</div>
+		<div id="pOrderGrid"></div>
+	</div>
+	<div class="row">
+			<div>
+			<h4 style="display:inline;">공정목록</h4>
+			<img class="info-img" alt="image" src="../images/info.png" id="proInfo2" data-bs-toggle="tooltip" data-bs-html="true" title="진행생산지시의 클릭된 행의 라인코드에 해당하는<br> 공정목록이 표시됩니다.">
+			</div>
+			<div id="proGrid"></div>
+			<div>
+				<button type="button" id="restartBtn" class="btn btn-dark btn2" style="float:right;"data-bs-toggle="tooltip" data-bs-html="true" title="긴급중지된 상태에서 <br>재시작버튼을 눌러 공정을<br> 다시 시작해 줄 수 있다.">재시작</button>
+				<button type="button" id="stopBtn" class="btn btn-dark btn2" style="float:right;"data-bs-toggle="tooltip" data-bs-html="true" title="공정이 끝난 것을 제외하고<br> 긴급중지로 변경된다.">긴급중지</button>
+				<button type="button" id="startBtn" class="btn btn-dark btn2" style="float:right;" data-bs-toggle="tooltip" data-bs-html="true" title="공정목록 그리드에<br> 출력된 생산이 진행된다.">생산시작</button>
+			</div>
+		
+	</div>
+	
+	
+<script>
+/* token */
+var token = $("meta[name='_csrf']").attr("content");
+var header = $("meta[name='_csrf_header']").attr("content");
+let startBtnEl = document.getElementById('startBtn');
+let tooltip = new bootstrap.Tooltip(startBtnEl,{placement : 'bottom'});
+let stopBtnEl = document.getElementById('stopBtn');
+let tooltip2 = new bootstrap.Tooltip(stopBtnEl,{placement : 'bottom'});
+let restartBtnEl = document.getElementById('restartBtn');
+let tooltip3 = new bootstrap.Tooltip(restartBtnEl,{placement : 'bottom'});
+let proInfoEl = document.getElementById('proInfo');
+let tooltip4 = new bootstrap.Tooltip(proInfoEl,{placement : 'right'});
+let proInfo2El = document.getElementById('proInfo2');
+let tooltip5 = new bootstrap.Tooltip(proInfo2El,{placement : 'right'});
+
+	
+	let pOrderGrid = orderGridInit();			// 진행생산지시 grid 초기화
+	let proGrid = progressGridInit();		// 공정목록 grid 초기화
+	
+	
+	startBtnHandler();  		// 시작 버튼 이벤트 핸들러
+	stopBtnHandler();			// 중지 버튼 이벤트 핸들러
+	restartBtnHandler();		// 재시작 버튼 이벤트 핸들러
+	pOrderGridClickHandler();   // 진행생산지시 그리드 클릭 버튼 이벤트 핸들러
+
+	
+	/*------------
+	// 진행생산지시 grid
+	----------------*/
+	
+	function orderGridInit(){
+		let pOrderGrid = new tui.Grid({
+			el: document.getElementById('pOrderGrid'),
+			scrollX: false,
+			scrollY: false,
+			rowHeaders: ['rowNum'],
+			columns: [
+				{
+					header: '생산지시코드',
+					name: 'poddCd'
+				},
+				{
+					header: '제품코드',
+					name: 'prdCd',
+					align : 'center'
+				},
+				{
+					header: '제품명',
+					name: 'prdNm',
+					align : 'center'
+				},
+				{
+					header: '수량',
+					name: 'poddAmt',
+					align : 'right'
+				},
+				{
+					header: '라인코드',
+					name: 'plineCd',
+					align : 'center'
+				}
+			]
+		});
+		
+		$.ajax({
+			url : '/getOProList',
+			method: "GET",			
+		}).then(res=>{
+			pOrderGrid.resetData(res);
+		})
+		
+		return pOrderGrid;
+	}
+	
+	
+	
+	
+	/*------------
+	// 공정목록 grid
+	----------------*/
+	function progressGridInit(){
+		let proGrid = new tui.Grid({
+			el: document.getElementById('proGrid'),
+			scrollX: false,
+			scrollY: false,
+			rowHeaders: ['rowNum'],
+			columns: [
+				{
+					header: '공정코드',
+					name: 'pproCd',
+					width : '140'
+				},
+				{
+					header: '공정명',
+					name: 'pproName',
+					align : 'center',
+					width : '100'
+				},
+				{
+					header: '설비코드',
+					name: 'eqpCd',
+					align : 'center',
+					width : '100'
+				},
+				{
+					header: '설비명',
+					name: 'eqpNm',
+					align : 'center',
+					width : '120'
+				},
+				{
+					header: '담당자',
+					name: 'pproEmpNm',
+					width : '100',
+					align : 'center'
+				},
+				{
+					header: '투입량',
+					name: 'pproInAmt',
+					width : '100',
+					align : 'right'
+				},
+				{
+					header: '불량량',
+					name: 'pproErAmt',
+					width : '100',
+					align : 'right'
+				},
+				{
+					header: '생산량',
+					name: 'pproOtAmt',
+					width : '100',
+					align : 'right'
+				},
+				{
+					header: '시작시간',
+					name: 'pproSTime',
+					align : 'right'
+				},
+				{
+					header: '종료시간',
+					name: 'pproETime',
+					align : 'right'
+				},
+				{
+					header: '상태', // 설비상태
+					name: 'eqpSts',
+					width : '120'
+				},
+			]
+		});
+		return proGrid;
+	}
+	
+	
+	
+	/*------------
+	// 진행생산지시 그리드 클릭 버튼 이벤트 핸들러
+	----------------*/
+	function pOrderGridClickHandler(){
+		let selectedRowKey = null;
+		$('#pOrderGrid').on('click',function(ev){
+			if(ev.rowKey <0){
+				return;
+			}
+			if(selectedRowKey>=0) {
+				pOrderGrid.removeRowClassName(selectedRowKey, 'cell-change');
+			  }
+			selectedRowKey = ev.rowKey;
+			pOrderGrid.addRowClassName(selectedRowKey, 'cell-change');
+			
+			let n = pOrderGrid.getFocusedCell().rowKey;
+			let data = pOrderGrid.getData();
+			let plineCd = data[n].plineCd;
+			let pproInAmt = data[n].poddAmt;
+			$.ajax({
+				url : '/flowProgress',
+				data : {"plineCd" : plineCd},
+				contentType: 'application/json',
+				dataType : 'json',
+				method: "GET",
+				success : function(data){
+					proGrid.resetData(data);
+					proGrid.setValue(0,'pproInAmt',pproInAmt);
+				},
+				error : function(reject){console.log(reject);}				
+			})
+			
+		})
+	}
+	
+
+
+	
+	/*------------
+	// sweetConfirm 
+	----------------*/
+	function sweetConfirm(msg, ic, callBack){
+		let msgA = {'S':'시작', 'T':'중지', 'R':'재시작'}
+
+		 Swal.fire({
+		      title: `${msgA[msg]} 하시겠습니까?`,
+		      icon: ic,
+		      showCancelButton: true,
+		      confirmButtonColor: '#3085d6',
+		      cancelButtonColor: '#d33',
+		      confirmButtonText: '승인',
+		      cancelButtonText: '취소'
+		      
+		    }).then((result) => {
+		    if(result.isConfirmed){
+		     	callBack();
+		    }
+		     })
+	}
+	
+		
+	
+	
+	
+	
+	
+	/*------------
+	// 시작 버튼 이벤트 핸들러
+	----------------*/
+	function startBtnHandler(){
+		$('#startBtn').on('click',function(){
+			// sweetalert2
+			sweetConfirm('S', 'success', sweetC);
+		})
+	}
+	
+	/*------------
+	// 공정 시작
+	----------------*/
+	var n = 0;
+	var interval;
+	function sweetC(){
+	
+		// 첫번째 설비 시작
+		startEqp(n,getTimeStr());
+		interval = setInterval(viewProgress,1000);  // 변수를 선언해줄경우 1번 실행
+	}
+
+	// interval 함수
+	function viewProgress(){
+		
+		// 설비상태 : 가동으로 업데이트 ajax : update
+		// 설비 가동 -> 시작시간
+		let time = getTimeStr();
+		stopEqp(n,time)
+		n++;
+		
+		if(n>=6){
+			clearInterval(interval);
+			Swal.fire('완료되었습니다');
+			
+			let pro = proGrid.getData();
+			for(let i = 0; i<pro.length; i++){
+				proGrid.setValue(i,'eqpSts','완료');
+			} 
+			
+			let binAmt = pro[5].pproOtAmt;
+			let pG = pOrderGrid.getFocusedCell().rowKey;
+			let poddCd = pOrderGrid.getValue(pG,'poddCd');
+			let plineCd = pOrderGrid.getValue(pG,'plineCd');
+			let prdCd = pOrderGrid.getValue(pG,'prdCd');
+			
+			$.ajax({
+				url : '/insertBIn',
+				method: 'POST',
+				data :  {"binAmt" : binAmt, "samt" : binAmt, "prdCd" : prdCd,
+					     "poddCd": poddCd, "plineCd" : plineCd},
+				dataType : 'json',
+				beforeSend : function (xhr) {
+				    xhr.setRequestHeader(header, token);
+				},
+				success : function(data){
+						console.log(data);
+						},
+				error : function(reject){
+						console.log(reject);
+						// 실패
+				}			 		  
+			});
+			
+		}
+		
+		startEqp(n,time);
+		
+	}
+	
+	// 설비 시작
+	function startEqp(n,time){
+		// 처음이면
+		let pG = pOrderGrid.getFocusedCell().rowKey;
+	
+		let pproInAmt;
+		
+		if(n==0){
+			pproInAmt = pOrderGrid.getValue(pG,'poddAmt');
+			
+		}else {
+			pproInAmt = proGrid.getValue(n-1,'pproOtAmt');
+		}
+		// 중지 -> 다음꺼 시작
+		
+		let pproSTime = time;
+		
+		let eqpCd = proGrid.getValue(n,'eqpCd');
+		let plineCd = proGrid.getValue(n,'plineCd');
+		let pproCd = proGrid.getValue(n,'pproCd');	
+		let eqpSts = proGrid.getValue(n,'eqpSts'); // 0번째 설비 상태 (현재 가동중)
+	 
+		if(eqpSts == '대기'){
+			// 대기 -> 가동
+			$.ajax({
+				url : '/eqpUpdate',
+				method: 'POST',
+				async : false,
+				data :  {"eqpCd" : eqpCd, "plineCd" : plineCd, "pproCd" : pproCd, "pproInAmt": pproInAmt, "pproSTime" : pproSTime},
+				dataType : 'json',
+				beforeSend : function (xhr) {
+				    xhr.setRequestHeader(header, token);
+				},
+				success : function(data){
+						// grid에서 수정
+						proGrid.resetData(data);
+						proGrid.refreshLayout();
+						},
+				error : function(reject){
+						console.log(reject);
+						// 실패
+				}			 		  
+			});
+		}
+	}
+	
+	
+	// 설비 중지
+	function stopEqp(n,time){
+		let eqpCd = proGrid.getValue(n,'eqpCd');
+		let plineCd = proGrid.getValue(n,'plineCd');
+		let eqpSts = proGrid.getValue(n,'eqpSts');
+		let pproCd = proGrid.getValue(n,'pproCd');
+		let pproInAmt = proGrid.getValue(n,'pproInAmt');
+		
+		let pproETime = time;
+		let pproErAmt = Math.floor(Math.random()*2);	
+		let pproOtAmt = pproInAmt - pproErAmt; 
+		
+		if(eqpSts == "가동" || eqpSts == "재시작"){
+			// 설비상태 업데이트
+			$.ajax({
+				url : '/eqpUpdate',
+				method: 'POST',
+				data : {"eqpCd" : eqpCd, "plineCd" : plineCd, "pproETime" : pproETime, "pproCd" : pproCd, "pproErAmt" : pproErAmt, "pproOtAmt" : pproOtAmt},
+				dataType : 'json',
+				beforeSend : function (xhr) {
+				    xhr.setRequestHeader(header, token);
+				},
+				async : false,
+				success : function(data){
+						// grid에서 수정
+						proGrid.resetData(data);
+						proGrid.refreshLayout();
+						},
+				error : function(reject){
+						console.log(reject);
+						// 실패
+				}			 		  
+			});	// end of ajax
+		}
+
+	} 
+	
+	/*------------
+	// 긴급중지 버튼 이벤트 핸들러
+	----------------*/
+	function stopBtnHandler(){
+	
+		$('#stopBtn').on('click',function(){
+			// sweetalert2
+			sweetConfirm('T', 'error', function(){
+				clearInterval(interval);
+				
+				let data = proGrid.getData();
+				let eqpSts = '';
+				let eqpCd = '';
+				let plineCd = '';
+				for(let i = 0; i< data.length; i++){
+					eqpSts = data[i].eqpSts;
+					if(eqpSts == "가동"){
+					eqpCd = data[i].eqpCd;
+					plineCd = data[i].plineCd;
+					for(let i=n; i<data.length; i++){
+						proGrid.setValue(i,'eqpSts','긴급중지');	
+					}
+				}	 
+				}
+			})
+		})
+	}
+	
+
+	/*------------
+	// 재시작 버튼 이벤트 핸들러
+	----------------*/
+	function restartBtnHandler(){
+		
+		$('#restartBtn').on('click',function(){
+			sweetConfirm('R', 'info', function(){
+				let eqpSts = proGrid.getValue(0,'eqpSts');
+				let data = proGrid.getData();
+				
+				for(let i=n; i<data.length; i++){
+					proGrid.setValue(i,'eqpSts','재시작');	
+				}
+				
+				interval = setInterval(viewProgress,1000);
+				
+				if(n>=6){
+					clearInterval(reInterval);
+				}
+			})
+		})
+	}
+	
+	$('#proOrd').mouseover(function(){
+		
+	});
+	
+	// proList
+
+	
+</script>		
+</div>
+</body>
+</html>

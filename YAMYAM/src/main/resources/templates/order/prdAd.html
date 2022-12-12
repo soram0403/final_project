@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layout/layout}">
+<head>
+<meta charset="UTF-8">
+<title>YAMYAM</title>
+
+<style>
+#od-btn {
+	display: inline-block; margin: 0 5px; float: right;
+}
+#exportBtn{
+	display: inline-block; margin: 0 5px; float: right;
+}
+#prdCd, #prdCd2 {
+text-align: center;
+}
+#infoMandu {
+margin: 0 5px;
+}
+</style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+
+	<div id="od-title">
+		<h3>완제품 재고 관리</h3>
+		<hr>
+	</div>
+	
+	<div id="prdAd-content">
+		<div id="input-group">
+			<ul class="ul-style">   
+			<li><label for="prdCd">제품명</label><input type="text" 
+		          data-bs-toggle="modal" data-bs-target="#prdModal" id="prdCd">
+		          <img class="Magnifying-Glass-img" alt="image" src="../images/Magnifying_Glass.png">
+		          <input type="text" class="back" readonly id="prdCd2">
+			<button class="btn btn-dark btn-sm" id="searchBtn">조회</button>
+			<button  class="btn btn-dark btn-sm" id="cancelBtn">초기화</button></li>
+          </ul>
+          
+          <!-- 제품명 Modal -->
+      <div class="modal" id="prdModal" tabindex="-1"
+         aria-labelledby="exampleModalLabel" aria-hidden="true">
+         <div class="modal-dialog">
+            <div class="modal-content">
+               <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">제품 목록</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"
+                     aria-label="Close"></button>
+               </div>
+               <div class="modal-body">
+               <div id="prdModalGrid"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+	    </div>
+	</div>	
+
+	<div id="od-content-2">
+		<h3>유통기한 현황 리스트
+		<img class="Magnifying-Glass-img" id="infoMandu" alt="image" src="../images/info.png" 
+		data-bs-toggle="tooltip" data-bs-placement="bottom" title="유통기한 일주일 이하 시, 　'경고' 표시 (폐기등록 필요)">
+		</h3>
+		 <button class="btn btn-dark btn-sm" id="exportBtn">엑셀 파일 출력</button>
+	</div>
+	<div id="expirationDateGrid"></div>
+
+	<br>
+	<div id="od-content-3">
+		<h3>폐기 등록 현황 리스트</h3>
+
+	<div id="od-btn">
+	<th:block sec:authorize="hasAnyAuthority('JOB-GRD1')">
+	<button class="btn btn-dark btn-sm" id="deleteBtn">행삭제</button>
+	<button class="btn btn-dark btn-sm" id="saveBtn">저장</button>
+	</th:block>
+	</div>
+	<div id="AbrogateGrid"></div>
+		</div>
+
+<script>
+
+/* token */
+var token = $("meta[name='_csrf']").attr("content");
+var header = $("meta[name='_csrf_header']").attr("content");
+
+
+	/*------------
+	// function
+	----------------*/
+	getEdateList();
+	getPrdList();
+	getAgAmtList();
+	
+	let expirationDateGrid = eDateGridInit();
+	let AbrogateGrid = AbrogateGridInit();
+	let prdModalGrid = prdGridInit();
+	
+	deleteBtnHandler();
+	searchBtnHandler();
+	cancelBtnHandler();
+	SaveBtnHandler();
+	
+	/*------------
+	// 조회버튼 이벤트 핸들러
+	----------------*/	
+	function searchBtnHandler(){
+		$('#searchBtn').on('click',function(){
+			let getPrdCd = $("#prdCd").val();
+				$.ajax({
+				   url:'/getEdateList',
+				   contentType: 'application/json',
+				   dataType: "json",
+				   method: "GET",
+				   data : {
+					   "prdCd" : getPrdCd
+				   },
+				   success : function(data) {
+					   expirationDateGrid.resetData(data);
+					   console.log(getPrdCd);
+				   },
+				   error : function(reject) {
+					   console.log(reject);
+				   }
+			   })
+		});
+	}
+	
+	
+	
+	/*------------
+	// 만두 Info
+	----------------*/
+	var exampleEl = document.getElementById('infoMandu')
+	var tooltip = new bootstrap.Tooltip(exampleEl, {placement:'right'})
+	$(document).ready(function(){
+	    $('[data-toggle="tooltip"]').tooltip();
+	});
+	
+	
+    /*------------
+	// 주문 조회 초기화 버튼
+	----------------*/
+	function cancelBtnHandler(){
+		$('#cancelBtn').on('click',function(){
+			$("#prdCd").val("");
+			$("#prdCd2").val("");
+			
+			$.ajax({
+				 url : '/getEdateList',
+				 contentType: 'application/json',
+	             dataType : "json",
+	             method: "GET",
+	             success : function(data) {
+	            	 expirationDateGrid.resetData(data);
+	             },
+	             error : function(reject) {
+	                console.log(reject);
+	             }
+			})
+		});	
+	}
+    
+    
+	/*------------
+	// 유통기한 리스트 grid
+	----------------*/
+	function eDateGridInit(){
+		let expirationDateGrid = new tui.Grid({
+		    el: document.getElementById('expirationDateGrid'),
+		    rowHeaders: ['rowNum'],
+		    scrollX: false,
+		    scrollY: false,
+		    columns: [
+		      {
+		        header: '생산 일자',
+		        align : 'center',
+		        name  : 'podDate'
+		      },
+		      {
+		        header: '완제품LOT',
+		        align : 'center',
+		        name  : 'prdLot'
+		      },
+		      {
+		        header: '제품 코드',
+		        align : 'center',
+		        name  : 'prdCd'
+		      },
+		      {
+		        header: '제품명',
+		        align : 'center',
+		        name  : 'prdNm'
+		      },
+		      {
+		        header: '재고량',
+		        align : 'right',
+		        name  : 'samt'
+		      },
+		      {
+		        header: '유통기한',
+		        align : 'center',
+		        name  : 'edate'
+		      },
+		      {
+		        header: '유통기한 수준',
+		        align : 'center',
+		        name  : 'edateYn',
+		        renderer: {
+	               styles: {
+	                    fontWeight: 'bold',
+	                    color: (props) => 
+		      				(props.value == '경고') ? '#FF4500' :'#0000CD'
+	                 }
+		            }
+	        
+		      },
+		    ]
+		  	});
+		  		return expirationDateGrid;
+		}  
+	
+	
+	/*------------
+	// 유통기한 현황 리스트 가져오기
+	----------------*/
+	  function getEdateList() {
+          $.ajax({
+             url : '/getEdateList',
+             dataType : "json",
+             success : function(data) {
+            	 expirationDateGrid.resetData(data);
+             },
+             error : function(reject) {
+                console.log(reject);
+             }
+          })
+       }
+	
+	
+	
+
+		/*------------
+		// 유통기한 행 클릭 핸들러
+		----------------*/
+		expirationDateGrid.on('click',function(ev){
+				
+				let podDate = expirationDateGrid.getRow(ev.rowKey).podDate;
+				let prdLot = expirationDateGrid.getRow(ev.rowKey).prdLot;
+				let prdCd = expirationDateGrid.getRow(ev.rowKey).prdCd;
+				let prdNm = expirationDateGrid.getRow(ev.rowKey).prdNm;
+				let edate = expirationDateGrid.getRow(ev.rowKey).edate;
+				
+				let rowData = [{podDate:podDate, prdLot:prdLot, prdCd:prdCd,
+								prdNm : prdNm, edate : edate}];
+				AbrogateGrid.resetData(rowData);
+				
+		})
+		
+		
+	/*------------
+	// 저장 버튼 클릭
+	----------------*/
+	function SaveBtnHandler(){
+		$('#saveBtn').on('click',function(){
+			let rowData = AbrogateGrid.getCheckedRows();
+			let List = [];
+			let agAmt = '';
+			let prdLot = ''; 
+			for (let i=0; i<rowData.length; i++) {
+				prdLot = rowData[i].prdLot;
+				agAmt = rowData[i].agAmt;
+			}
+			if(agAmt == null) {
+				toastr.options = {
+						  "closeButton": true,
+						  "newestOnTop": true,
+						  "positionClass": "toast-bottom-full-width",
+						  "preventDuplicates": true,
+						  "extendedTimeOut" : 0, 
+						  "timeOut" : 0
+				}
+				toastr.error('폐기량을 입력해주세요.');
+			}else {
+				sweetConfirm('C', function(){
+							$.ajax({
+								url : '/insertEdateList',
+								type : 'post',
+								contentType: 'application/json',
+								data: JSON.stringify({"agAmt" : agAmt, "prdLot" : prdLot}),
+								dataType : 'json',
+								beforeSend : function (xhr) {
+								    xhr.setRequestHeader(header, token);
+								},
+								 success : function(result) {
+					                 if(result > 0){
+					                	 Swal.fire(
+					       			          '등록이 완료되었습니다.'	);
+					                	 getAgAmtList();
+					                 }else {
+					                	 Swal.fire(
+					                			 '등록이 실패하였습니다.');
+					                 }
+					              },
+					              error : function(reject) {
+					                 console.log(reject);
+					              }
+							})
+				})
+			}
+			
+		})
+		
+   }
+	
+	/*------------
+	// 폐기 등록 리스트 grid
+	----------------*/
+	function AbrogateGridInit(){	
+	let AbrogateGrid = new tui.Grid({
+	    el: document.getElementById('AbrogateGrid'),
+	    rowHeaders: ['checkbox','rowNum'],
+	    scrollX: false,
+	    scrollY: false,
+	    columns: [
+	      {
+	        header: '생산 일자',
+	        align : 'center',
+	        name: 'podDate'
+	      },
+	      {
+	        header: '완제품LOT',
+	        align : 'center',
+	        name: 'prdLot'
+	      },
+	      {
+	        header: '제품 코드',
+	        align : 'center',
+	        name: 'prdCd'
+	      },
+	      {
+	        header: '제품명',
+	        align : 'center',
+	        name: 'prdNm'
+	      },
+	      {
+	        header: '폐기량',
+	        align : 'right',
+	        name: 'agAmt',
+	        editor: 'text',
+			// 필수 입력 값
+			validation: {
+			     dataType: 'text',
+			     required: true
+			      }
+	      },
+	      {
+	        header: '유통기한',
+	        align : 'center',
+	        name: 'edate'
+	      }
+	    ]
+	  	});
+	  		return AbrogateGrid;
+	}  
+	
+	/*------------
+	// 폐기 등록 리스트 가져오기
+	----------------*/
+	  function getAgAmtList() {
+          $.ajax({
+             url : '/getAgAmtList',
+             dataType : "json",
+             success : function(data) {
+            	 AbrogateGrid.resetData(data);
+             },
+             error : function(reject) {
+                console.log(reject);
+             }
+          })
+       }
+	
+	
+	 /*------------
+	// 삭제 버튼 클릭(그리드행 삭제)
+	----------------*/	
+	function deleteBtnHandler(){
+		// grid 선택 행 삭제
+		$('#deleteBtn').on('click',function(){
+			// sweetalert2
+			Swal.fire({
+			      title: '정말로 삭제 하시겠습니까?',
+			      //text: "다시 되돌릴 수 없습니다. 신중하세요.",
+			      icon: 'warning',
+			      showCancelButton: true,
+			      confirmButtonColor: '#3085d6',
+			      cancelButtonColor: '#d33',
+			      confirmButtonText: '승인',
+			      cancelButtonText: '취소',
+			      //reverseButtons: true, // 버튼 순서 거꾸로
+			      
+			    }).then((result) => {
+			      if (result.isConfirmed) {
+			        Swal.fire(
+			          '삭제가 완료되었습니다.'		          
+			        )
+			        AbrogateGrid.removeCheckedRows();
+			      }
+			    })
+			
+		});	
+	}
+	 
+	 
+	/*------------
+	// 제품명 Modal (조회 시, 사용)
+	----------------*/
+	function prdGridInit() {
+	let prdModalGrid = new tui.Grid({
+	    el: document.getElementById('prdModalGrid'),
+	    rowHeaders: ['rowNum'],
+	    scrollX: false,
+	    scrollY: false,
+	    columns: [
+	      {
+	        header: '제품 코드',
+	        align : 'center',
+	        name: 'prdCd'
+	      },
+	      {
+	        header: '제품명',
+	        align : 'center',
+	        name: 'prdNm'
+	      }
+	    ]
+	  });
+		return prdModalGrid;
+	}
+
+
+
+	/*------------
+	// 제품명 모달 클릭
+	----------------*/
+	function getPrdList() {
+	   $('#prdCd').on('click',function(){
+		   $.ajax({
+			   url:'/prdListModal',
+			   dataType: "json",
+			   success : function(data) {
+				   prdModalGrid.resetData(data);
+			   },
+			   error : function(reject) {
+				   console.log(reject);
+			   }
+		   })
+	    	prdModalGrid.refreshLayout();
+	   });
+	}
+
+   /*------------
+	// 제품명 모달 데이터 가져오기
+	----------------*/
+   prdModalGrid.on('click', ev => {
+	   let rowData = prdModalGrid.getRow(ev.rowKey);
+	   
+	   let cdVal = rowData['prdCd'];
+	   let nmVal = rowData['prdNm'];
+	   
+	   $('#prdCd').val(cdVal);
+	   $('#prdCd2').val(nmVal);
+	   
+	   $('#prdModal').modal("hide");
+   })
+   
+   
+    /*------------
+	// 엑셀 내보내기
+	----------------*/
+   $('#exportBtn').on('click',function(){
+	   let options = {
+			     includeHeader : true,
+			     includeHiddenColumns : true,
+			     onlySelected : true,
+			     fileName: 'expirationDate List'
+			   };
+	 expirationDateGrid.export('xlsx', options);
+   });
+   
+</script>
+</div>
+</body>
+</html>

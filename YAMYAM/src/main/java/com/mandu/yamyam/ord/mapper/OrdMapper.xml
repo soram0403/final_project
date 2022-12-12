@@ -1,0 +1,662 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mandu.yamyam.ord.mapper.OrdMapper">
+	
+	<!--
+			Modal
+					 -->
+					 
+	<!-- 공용 - 거래처목록 모달 -->
+	<select id="actList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT ACT_CD,
+			   ACT_NM, 
+			   ACT_NUM, 
+			   ACT_TEL
+			   
+		  FROM C_ACT
+		 WHERE ACT_DIV = 'ACT-TYPE1'
+		 ORDER BY ACT_CD
+	</select>
+	
+	
+	<!-- 공용 - 제품목록 모달 -->
+	<select id="prdList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT PRD_CD, PRD_NM
+		  FROM C_PRD
+	  ORDER BY PRD_CD
+	</select>
+	
+	
+	<!-- 공용 - 완제품LOT 모달 -->
+	<select id="lotList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT I.PRD_LOT, 
+			   P.PRD_NM, 
+			   TO_CHAR(I.EDATE,'yyyy-MM-dd') AS EDATE
+			   
+		  FROM C_PRD P 
+		  JOIN B_IN I
+		    ON P.PRD_CD = I.PRD_CD
+	  ORDER BY I.PRD_LOT
+	</select>
+	
+	
+	<!-- 완제품LOT 모달 (재고 조회 Tab) -->
+	<select id="lotDetailList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT I.PRD_LOT, 
+			   P.PRD_NM, 
+			   TO_CHAR(I.EDATE,'yyyy-MM-dd') AS EDATE
+			   
+		  FROM C_PRD P 
+		  JOIN B_IN I
+		    ON P.PRD_CD = I.PRD_CD
+		 WHERE I.SAMT > 0
+	  ORDER BY I.PRD_LOT
+	</select>
+	
+	<!-- 출고 등록 현황 리스트에 보여지는 LOT 재고 내역 모달 -->
+	<select id="lotSList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT BIN.PRD_LOT, 
+		       BIN.SAMT, 
+		       TO_CHAR(BIN.POD_DATE,'yyyy-MM-dd') AS POD_DATE, 
+		       TO_CHAR(BIN.EDATE,'yyyy-MM-dd') AS EDATE,
+		       P.PRD_CD
+		       
+		  FROM B_IN BIN
+		  JOIN C_PRD P
+		  ON P.PRD_CD = BIN.PRD_CD
+		  
+	     WHERE P.PRD_CD = #{prdCd}
+	   	   AND BIN.SAMT > 0
+	  ORDER BY BIN.PRD_LOT
+	</select>
+
+	<!-- 완제품LOT 출고 현황 모달 (반품 관리 Tab) -->
+	<select id="lotOutList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT OD.OD_CD, 
+			   I.PRD_LOT, 
+			   P.PRD_NM, 
+			   A.ACT_CD,
+			   A.ACT_NM,
+			   OD.OD_AMT,
+			   OU.BAMT, 
+			   TO_CHAR(OU.BDATES,'yyyy-MM-dd') AS BDATES
+			   
+		  FROM B_OD OD
+		  
+		  JOIN B_OUT OU
+			ON OD.OD_CD = OU.OD_CD
+			
+		  JOIN C_PRD P
+			ON OD.PRD_CD = P.PRD_CD
+			
+		  JOIN C_ACT A
+		  	ON OD.ACT_CD = A.ACT_CD
+			
+		  JOIN B_IN I
+			ON I.PRD_LOT = OU.PRD_LOT
+			
+	  ORDER BY BDATES DESC, OD.OD_CD DESC
+	</select>
+	
+		<!-- 주문서 관리 모달 (생산 요청 관리 Tab) -->
+	<select id="ordList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT O.OD_CD, 
+		       P.PRD_CD, 
+		       P.PRD_NM, 
+		       O.OD_AMT, 
+		       TO_CHAR(O.DE_DATE,'yyyy-MM-dd') AS DE_DATE,
+			   (SELECT SUM(SAMT)
+		          FROM B_IN
+		         WHERE PRD_CD = P.PRD_CD
+		         GROUP BY PRD_CD) AS SAMT
+		         
+		  FROM B_OD O 
+		  JOIN C_PRD P
+		    ON O.PRD_CD = P.PRD_CD
+		    
+		    WHERE O.OD_STS = 'ORD-STS1'
+	  ORDER BY O.OD_CD DESC
+	</select>
+	
+	<!--
+			주문 관리 Tab
+					 		-->
+					 		
+	<!-- 주문서 조회 (전체, 조건조회) -->
+	<select id="getOrdList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT TO_CHAR(OD.OD_DATE,'yyyy-MM-dd') AS OD_DATE, 
+			   OD.OD_CD, 
+			   PRD.PRD_CD, 
+			   PRD.PRD_NM, 
+			   OD.OD_AMT, 
+			   ACT.ACT_CD, 
+			   ACT.ACT_NM, 
+			   TO_CHAR(OD.DE_DATE,'yyyy-MM-dd') AS DE_DATE, 
+			   find_code_name(OD.OD_STS) AS OD_STS
+			   
+		  FROM B_OD OD  
+		  JOIN C_PRD PRD
+            ON PRD.PRD_CD = OD.PRD_CD
+            
+          JOIN C_ACT ACT
+            ON ACT.ACT_CD = OD.ACT_CD
+            
+        <if test="odSts != null and !odSts.equals('')">
+         WHERE OD_STS = #{odSts}
+        </if>
+	    <if test='startDate != null and endDate != null'>
+	       AND TRUNC(OD_DATE) BETWEEN #{startDate} AND #{endDate}
+	    </if>
+	    <if test="prdCd != null and !prdCd.equals('')">
+	       AND PRD.PRD_CD = #{prdCd}
+	    </if>
+	    <if test="actCd != null and !actCd.equals('')">
+	       AND ACT.ACT_CD = #{actCd}
+	    </if>
+      ORDER BY OD_DATE DESC, OD_STS DESC
+	</select>
+	
+	
+	<!-- 주문서 신규 등록 -->
+	<insert id="insertOrd" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+	<selectKey keyProperty="odCd" resultType="String" order="BEFORE">
+		SELECT mk_od_cd from dual
+	</selectKey>
+		INSERT INTO B_OD
+		(
+		 OD_DATE,
+		 OD_CD,
+		 PRD_CD,
+		 OD_AMT,
+		 ACT_CD,
+		 DE_DATE,
+		 OD_STS
+		 )
+		VALUES 
+		(
+		 CURRENT_DATE,
+		 #{odCd},
+		 #{prdCd},
+		 #{odAmt},
+		 #{actCd},
+		 #{deDate},
+		 'ORD-STS1'
+		)
+	</insert>
+	
+	<!-- 주문서 수정 -->
+	<update id="updateOrd" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+		UPDATE B_OD
+		<set>
+		PRD_CD = #{prdCd}, 
+		OD_AMT = #{odAmt}, 
+		ACT_CD = #{actCd}, 
+		DE_DATE = #{deDate}
+		</set>
+		WHERE OD_CD = #{odCd}
+	</update>
+	
+	<!-- 주문서 삭제 -->
+	<delete id="deleteOrd" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+		DELETE 
+		 FROM B_OD OD
+        WHERE OD.OD_CD = ( SELECT POD.OD_CD
+                             FROM B_POD POD
+                            WHERE OD.OD_CD = POD.OD_CD
+                              AND POD.OD_CD = #{odCd})
+	</delete>
+	
+	
+	<!--
+			완제품 출고 조회 Tab
+								 -->
+	
+	<!-- 출고내역 리스트 조회 (전체, 조건조회) -->
+	<select id="getOrdOutList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT OD.OD_CD, 
+			   O.OUT_NO, 
+			   P.PRD_CD, 
+			   I.PRD_LOT, 
+			   P.PRD_NM, 
+			   A.ACT_NM, 
+			   O.BAMT, 
+			   TO_CHAR(O.BDATES,'yyyy-MM-dd') AS BDATES,
+		       TO_CHAR(I.POD_DATE,'yyyy-MM-dd') AS POD_DATE, 
+		       TO_CHAR(I.EDATE,'yyyy-MM-dd') AS EDATE, 
+		       O.OUT_ETC
+		
+		FROM B_OUT O
+		JOIN B_IN I
+		  ON O.PRD_LOT = I.PRD_LOT
+		
+		JOIN C_ACT A
+		  ON A.ACT_CD = O.ACT_CD
+		
+		JOIN C_PRD P
+		  ON P.PRD_CD = I.PRD_CD
+		
+		JOIN B_OD OD
+		  ON OD.OD_CD = O.OD_CD
+        
+       WHERE O.OUT_NO IS NOT NULL
+       
+       <if test='startDate != null and endDate != null'>
+      	 AND TRUNC(I.POD_DATE) BETWEEN #{startDate} AND #{endDate}
+       </if>
+       <if test="prdCd != null and !prdCd.equals('')">
+         AND P.PRD_CD = #{prdCd}
+       </if>
+       <if test="prdLot != null and !prdLot.equals('')">
+         AND I.PRD_LOT = #{prdLot}
+       </if>
+    ORDER BY BDATES, OUT_NO
+	</select>
+	
+
+	<!--
+		완제품 출고 관리 Tab
+							 -->
+	
+	<!-- 진행중인 주문서 리스트조회 (전체, 조건조회) -->			
+	<select id="getIngOrdList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT DISTINCT TO_CHAR(OD.OD_DATE,'yyyy-MM-dd') AS OD_DATE, 
+		       OD.OD_CD, 
+		       P.PRD_CD, 
+		       P.PRD_NM, 
+		       A.ACT_CD, 
+		       A.ACT_NM,
+		       OD.OD_AMT
+		       
+		  FROM B_OD OD 
+		
+		  JOIN C_PRD P
+		  	ON OD.PRD_CD = P.PRD_CD
+		  
+		  JOIN C_ACT A
+		 	ON A.ACT_CD = OD.ACT_CD
+		 	
+		  JOIN B_IN I
+		 	ON OD.PRD_CD = I.PRD_CD
+		 	
+		  JOIN B_POD POD
+		 	ON OD.OD_CD = POD.OD_CD
+		 	
+		 WHERE OD.OD_STS = 'ORD-STS1'
+		   AND I.SAMT > 0
+		   AND POD.RQT_STS = 'RQT-STS2'
+		 
+		<if test='startDate != null and endDate != null'>
+		   AND TRUNC(OD.OD_DATE) BETWEEN #{startDate} AND #{endDate}
+        </if>
+      ORDER BY OD_DATE DESC
+	</select>
+
+	
+	<!-- 진행중인 주문서 출고등록 -->
+	<insert id="insertOutList" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+		<selectKey keyProperty="outNo" resultType="String" order="BEFORE">
+			SELECT mk_bout_no from dual
+		</selectKey>
+		INSERT INTO B_OUT
+		(
+			OUT_NO,
+			BDATES,
+			BAMT,
+			EDATE,
+			PRD_CD,
+			ACT_CD,
+			OD_CD,
+			PRD_LOT,
+			OUT_ETC
+		)
+		VALUES
+		(
+			#{outNo},
+			CURRENT_DATE,
+			#{bamt},
+			#{edate},
+			#{prdCd},
+			#{actCd},
+			#{odCd},
+			#{prdLot},
+			#{outEtc}
+		)
+	</insert>
+	
+	<!-- 출고등록 후, 재고 업데이트 -->
+	<update id="updateOutList" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+			UPDATE B_IN I
+			<set>
+				SAMT = BIN_AMT - (SELECT SUM(BAMT)
+                       				FROM B_OUT
+                       			   WHERE PRD_LOT = #{prdLot})
+			</set>
+				 WHERE PRD_LOT = #{prdLot}
+	</update>
+	
+	<!-- 출고 등록 후, 주문 진행상황 업데이트 -->
+	<update id="updateOrdStsList" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+		UPDATE B_OD
+		<set>
+			OD_STS = 'ORD-STS2'
+		</set>
+	  WHERE OD_STS = (SELECT DISTINCT OD.OD_STS
+	                  FROM B_OD OD
+	                  LEFT OUTER JOIN B_OUT OU
+	                  ON OD.OD_CD = OU.OD_CD
+	                  WHERE OD.OD_CD = #{odCd})
+       AND OD_CD = #{odCd}
+	</update>
+	
+	
+	<!--
+		완제품 반품 관리 Tab
+							 -->
+
+	<!-- 완제품 반품 관리 리스트 조회 -->
+	<select id="getReList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT TO_CHAR(R.RE_DATE,'yyyy-MM-dd') AS RE_DATE, 
+			   R.RE_CD, 
+			   I.PRD_LOT, 
+			   (SELECT PRD_NM
+				  FROM C_PRD
+				 WHERE PRD_CD = I.PRD_CD) AS PRD_NM, 
+			   A.ACT_NM,
+			   A.ACT_CD,
+			   OU.BAMT,
+			   R.RE_AMT, 
+			   ABS(OU.BAMT - R.RE_AMT) AS SUM_BAMT
+			   
+		  FROM B_OUT OU
+		  
+		  JOIN B_OD OD
+		    ON OD.OD_CD = OU.OD_CD
+		    
+		  JOIN B_RT R
+			ON R.PRD_LOT = OU.PRD_LOT
+			
+		  JOIN B_IN I
+			ON R.PRD_LOT = I.PRD_LOT
+			
+		  JOIN C_ACT A
+			ON R.ACT_CD = A.ACT_CD
+		<if test='startDate != null and endDate != null'>
+         WHERE TRUNC(R.RE_DATE) BETWEEN #{startDate} AND #{endDate}
+        </if>
+      ORDER BY RE_DATE DESC, R.RE_CD
+	</select>
+	
+	<!-- 완제품 반품 관리 리스트 등록 -->
+	<insert id="insertReList" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+		<selectKey keyProperty="reCd" resultType="String" order="BEFORE">
+		SELECT mk_bre_cd from dual
+		</selectKey>
+		INSERT INTO B_RT
+		(
+			RE_DATE,
+			RE_CD,
+			PRD_LOT,
+			ACT_CD,
+			RE_AMT
+		)
+		VALUES
+		(
+			CURRENT_DATE,
+			#{reCd},
+			#{prdLot},
+			#{actCd},
+			#{reAmt}
+		)
+	</insert>
+	
+	<!-- 완제품 반품 후, 재고 수정 -->
+	<update id="updateReList" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+			UPDATE B_IN I
+		<set>
+			SAMT = SAMT - (SELECT SUM(RE_AMT) 
+            				 FROM B_RT
+            				WHERE PRD_LOT = #{prdLot})
+		</set>
+			WHERE PRD_LOT = #{prdLot}
+	</update>
+	
+	
+	<!--
+		완제품 재고 조회 Tab
+							 -->
+							 
+	<!-- 완제품 재고 리스트 조회 -->
+	<select id="getLotList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT TO_CHAR(POD.PODD_DATES,'yyyy-MM-dd') AS POD_DATE, 
+		I.PRD_LOT, 
+		P.PRD_CD, 
+		P.PRD_NM,
+		I.SAMT
+		
+		FROM B_IN I
+		
+		JOIN P_ODD POD
+		  ON POD.PODD_CD = I.PODD_CD
+		  
+		JOIN C_PRD P
+		  ON P.PRD_CD = I.PRD_CD
+	   WHERE I.SAMT > 0
+        <if test="prdCd != null and !prdCd.equals('')">
+         AND P.PRD_CD = #{prdCd}
+        </if>
+        <if test="prdLot != null and !prdLot.equals('')">
+         AND I.PRD_LOT = #{prdLot}
+        </if>
+	</select>
+	
+	
+	<!--
+		완제품 재고 관리 Tab
+							 -->
+							 
+	<!-- 완제품 재고 관리 유통기한 현황 리스트 조회 -->			
+	<select id="getEdateList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT TO_CHAR(POD.PODD_DATES,'yyyy-MM-dd') AS POD_DATE, 
+			   I.PRD_LOT, 
+			   P.PRD_CD, 
+			   P.PRD_NM,
+			   I.SAMT,
+			   TO_CHAR(I.EDATE,'yyyy-MM-dd') AS EDATE,
+			   CASE WHEN CURRENT_DATE + 4 <![CDATA[>]]> I.EDATE THEN '경고' ELSE '양호' END AS EDATE_YN
+			   
+		  FROM B_IN I
+		  
+		  JOIN P_ODD POD
+			ON POD.PODD_CD = I.PODD_CD
+			
+		  JOIN C_PRD P
+			ON P.PRD_CD = I.PRD_CD
+		 WHERE I.SAMT > 0
+		<if test="prdCd != null and !prdCd.equals('')">
+           AND P.PRD_CD = #{prdCd}
+        </if>
+	  ORDER BY I.EDATE
+	</select>
+				 
+	<!-- 완제품 재고 관리 폐기 등록 현황 리스트 조회 -->
+	<select id="getAgAmtList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT TO_CHAR(POD.PODD_DATES,'yyyy-MM-dd') AS POD_DATE, 
+			   I.PRD_LOT, 
+			   P.PRD_CD, 
+			   P.PRD_NM,
+			   I.AG_AMT,
+			   TO_CHAR(I.EDATE,'yyyy-MM-dd') AS EDATE
+			   
+		  FROM B_IN I
+		
+		  JOIN P_ODD POD
+			ON POD.PODD_CD = I.PODD_CD
+			
+		  JOIN C_PRD P
+			ON P.PRD_CD = I.PRD_CD
+			
+		 WHERE I.AG_AMT IS NOT NULL
+	</select>
+	
+	<!-- 완제품 재고 관리 폐기 등록 -->
+	<update id="insertEdateList" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+			UPDATE B_IN
+		<set>
+			AG_AMT = #{agAmt}
+		</set>
+			WHERE PRD_LOT = #{prdLot}
+	</update>
+
+	<!-- 완제품 재고 관리 폐기 등록 후, 재고 수정 -->
+	<update id="updateEdateList" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+			UPDATE B_IN
+		<set>
+			SAMT = ABS(samt - #{agAmt}) 
+		</set>
+			WHERE PRD_LOT = #{prdLot}
+	</update>
+	
+	<!--
+		생산 요청 관리 Tab
+							 -->				
+	
+	<!-- 생산 요청 관리 리스트 조회 -->	
+	<select id="getPodList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT TO_CHAR(D.RQT_DATE,'yyyy-MM-dd') AS RQT_DATE,
+				D.RQT_NO,
+		      	O.OD_CD,
+		      	P.PRD_CD,
+		      	P.PRD_NM,
+		      	O.OD_AMT,
+		       	(SELECT SUM(SAMT)
+		           FROM B_IN
+		          WHERE PRD_CD = P.PRD_CD
+		       GROUP BY PRD_CD) AS SAMT,
+		      	D.RQT_AMT,
+		      	TO_CHAR(O.DE_DATE,'yyyy-MM-dd') AS DE_DATE,
+		      	find_code_name(D.RQT_STS) AS RQT_STS
+		      	
+		   FROM B_POD D
+		
+		   JOIN B_OD O
+		  	 ON D.OD_CD = O.OD_CD
+		  
+		   JOIN C_PRD P
+		 	 ON P.PRD_CD = D.PRD_CD
+		  
+		<if test="prdCd != null and !prdCd.equals('')">
+          WHERE P.PRD_CD = #{prdCd}
+        </if>
+        
+		<if test="prdLot != null and !prdLot.equals('')">
+          AND I.PRD_LOT = #{prdLot}
+        </if>
+        ORDER BY RQT_DATE DESC, RQT_NO DESC
+	</select>
+	
+	<!-- 생산 요청 관리 조건조회 -->
+	<select id="getPodDetailList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT TO_CHAR(D.RQT_DATE,'yyyy-MM-dd') AS RQT_DATE,
+	      	O.OD_CD,
+	      	P.PRD_CD,
+	      	P.PRD_NM,
+	      	O.OD_AMT,
+	       	(SELECT SUM(SAMT)
+		        FROM B_IN
+		        WHERE PRD_CD = P.PRD_CD
+	        	GROUP BY PRD_CD) AS SAMT,
+	      	D.RQT_AMT,
+	      	TO_CHAR(O.DE_DATE,'yyyy-MM-dd') AS DE_DATE,
+	      	find_code_name(D.RQT_STS) AS RQT_STS
+	      	
+		FROM B_POD D 
+		JOIN B_OD O
+		  ON D.OD_CD = O.OD_CD
+		  
+		JOIN C_PRD P
+		  ON P.PRD_CD = D.PRD_CD
+		<if test='startDate != null and endDate != null'>
+        	 WHERE TRUNC(D.RQT_DATE) BETWEEN #{startDate} AND #{endDate}
+        </if>
+        <if test="rqtSts != null and !rqtSts.equals('')">
+        	AND RQT_STS = #{rqtSts}
+        </if>
+	</select>
+	
+	<!-- 생산 요청 관리 등록 -->
+	<insert id="insertPodOrd" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+		<selectKey keyProperty="rqtNo" resultType="String" order="BEFORE">
+			SELECT mk_prqt_no from dual
+		</selectKey>
+		INSERT INTO B_POD
+		(
+			RQT_NO, 
+			RQT_DATE, 
+			OD_CD, 
+			PRD_CD, 
+			RQT_AMT, 
+			RQT_STS
+		)
+		VALUES 
+		(
+			#{rqtNo},
+			CURRENT_DATE,
+			#{odCd},
+			#{prdCd},
+			#{rqtAmt},
+			'RQT-STS1'
+		)
+	</insert>
+	
+	<!-- 생산 요청 관리 수정 -->
+	<update id="updatePodOrd" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+		UPDATE B_POD
+		<set>
+		RQT_DATE = #{rqtDate},
+		RQT_AMT = #{rqtAmt}
+		</set>
+		WHERE RQT_NO = #{rqtNo}
+	</update>
+	
+	<!-- 생산 요청 관리 삭제 -->
+	<delete id="deletePodOrd" parameterType="com.mandu.yamyam.ord.service.OrdVO">
+        	DELETE FROM B_POD 
+        	WHERE RQT_NO = #{rqtNo}
+	</delete>
+	
+	
+	<!--
+		제품 안전 재고 관리 Tab
+							 -->
+							 
+	<!-- 안전 재고 관리 리스트 조회 -->
+	<select id="getSfamtList" resultType="com.mandu.yamyam.common.LowerKeyMap">
+		SELECT C.PRD_CD,
+      		   C.PRD_NM,
+       		   B.SAMT,
+      		   C.PRD_SFAMT,
+       		   CASE WHEN (C.PRD_SFAMT * 0.7)  >= B.SAMT THEN '위험'
+            		WHEN (C.PRD_SFAMT * 0.8)  >= B.SAMT THEN '경고'
+           			WHEN (C.PRD_SFAMT * 0.9)  >= B.SAMT THEN '관심' 
+           			ELSE '정상' END AS PRD_SFAMT_STS
+           			
+	FROM (SELECT I.PRD_CD,
+             	 P.PRD_NM,
+             	 SUM(I.SAMT) AS SAMT
+      	  FROM B_IN I 
+      	  
+      	  JOIN C_PRD P
+        	ON I.PRD_CD = P.PRD_CD
+        	 	
+      GROUP BY I.PRD_CD, P.PRD_NM) B
+      
+      	  JOIN C_PRD C
+        	ON B.PRD_CD = C.PRD_CD
+        	
+      <if test="prdCd != null and !prdCd.equals('')">
+      	 WHERE C.PRD_CD = #{prdCd}
+      </if>
+      ORDER BY B.SAMT ASC
+	</select>
+	
+</mapper>

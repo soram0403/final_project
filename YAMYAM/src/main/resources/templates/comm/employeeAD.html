@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layout/layout}">
+<div class="container" layout:fragment="content">
+	<h3>직원관리</h3>
+	<hr>
+
+	<div align="right">
+		<form action="" onsubmit="return false">
+			직원 이름 <input type="text" name="empNm" id="searchEmpName" size="15">
+			<button type="button" class="btn btn-dark btn-sm" id="searchBtn">검색</button>
+			<button type="reset" class="btn btn-dark btn-sm" id="searchReset">초기화</button>
+		</form>
+	</div>
+
+	<br>
+
+	<div id="grid"></div>
+
+	<div align="right">
+		<br>
+		
+			<button type="button" class="btn btn-dark btn-sm"
+			data-bs-toggle="modal" data-bs-target="#staticBackdrop1" id="mainInsertBtn">회원 등록</button>
+		
+		<!-- 모달창 1번 -->
+		<div class="modal fade" id="staticBackdrop1" data-bs-backdrop="static" 
+			data-bs-keyboard="false" tabindex="-1"
+			aria-labelledby="staticBackdropLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<form action="#" method="post">
+					<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title" id="staticBackdropLabel">회원 등록</h5>
+							<button type="button" class="btn-close" data-bs-dismiss="modal" id="insertModalClose"
+								aria-label="Close"></button>
+						</div>
+	
+						<!-- 모달창 input type -->
+						<div class="modal-body">
+							
+							<div class="mb-3 row">
+						    <label for="staticEmail" class="col-sm-3 col-form-label">계정 아이디</label>
+						    <div class="col-sm-9">
+						      <input type="text" name="empId" class="form-control" id="insertId">
+						    </div>
+						  </div>
+						  
+						  	<div class="mb-3 row">
+						    <label for="staticEmail" class="col-sm-3 col-form-label">비밀번호</label>
+						    <div class="col-sm-9">
+						      <input type="password" name="empPw" class="form-control" id="insertPw">
+						    </div>
+						  </div>
+						  
+						  	<div class="mb-3 row">
+						    <label for="staticEmail" class="col-sm-3 col-form-label">비밀번호확인</label>
+						    <div class="col-sm-9">
+						      <input type="password" name="empPwcr" class="form-control" id="insertPwcr">
+						    </div>
+						  </div>
+						  
+						  	<div class="mb-3 row">
+						    <label for="staticEmail" class="col-sm-3 col-form-label">직원 이름</label>
+						    <div class="col-sm-9">
+						      <input type="text" name="empNm" class="form-control" id="insertName">
+						    </div>
+						  </div>
+						  
+						  	<div class="mb-3 row">
+						    <label for="staticEmail" class="col-sm-3 col-form-label">입사일</label>
+						    <div class="col-sm-9">
+						      <div class="tui-datepicker-input tui-datetime-input tui-has-focus"  style="width:100%">
+							      <input type="text" id="hireDate" name="empDate" aria-label="Date-Time">
+								  <span class="tui-ico-date"></span>
+							  </div>
+							  <div id="wrapper"></div>						    
+						    </div>
+						  </div>
+						  
+						  	<div class="mb-3 row">
+						    <label for="staticEmail" class="col-sm-3 col-form-label">부서명</label>
+						    <div class="col-sm-9">
+						      <select name="deptCd" class="form-control" id="deptName">
+						      	<option th:each="dept : ${depts}" th:value="${dept.deptCd}" th:text="${dept.deptNm}"></option>
+						      </select>
+						    </div>
+						  </div>
+						  
+						  	<div class="mb-3 row">
+						    <label for="staticEmail" class="col-sm-3 col-form-label">직급 정보</label>
+						    <div class="col-sm-9">
+						      <select name="empRole" class="form-control" id="insertRole">
+						      	<option th:each="job : ${jobs}" th:value="${job.commdCd}" th:text="${job.commdNm}"></option>
+						      </select>
+						    </div>
+						  </div>
+						  
+						  
+						</div>
+	
+	
+						<div class="modal-footer">
+							<button type="button" class="btn btn-primary" id="insertBtn">등록</button>
+							<input type="reset" class="btn btn-secondary">
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+		
+			
+
+		<button type="button" class="btn btn-dark btn-sm"
+			data-bs-target="#staticBackdrop2" name="mainUpdateBtn" id="mainUpdateBtn">회원 수정</button>
+
+		<!-- 모달창 2번 -->
+			<div class="modal" id="staticBackdrop2" data-bs-backdrop="static"
+				data-bs-keyboard="false" tabindex="-1"
+				aria-labelledby="staticBackdropLabel" aria-hidden="true">
+				<div class="modal-dialog">
+					<form action="/ajax/updateEmp" method="post" onsubmit="return false">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="staticBackdropLabel" >회원 수정</h5>
+								<button type="button" class="btn-close" data-bs-dismiss="modal" id="updateModalClose"
+									aria-label="Close"></button>
+							</div>
+					    
+							<!-- 모달창 input type -->
+							<div class="modal-body">
+		
+							
+							  <div class="mb-2 row">
+							    <label for="staticEmail" class="col-sm-3 col-form-label">계정 아이디</label>
+							    <div class="col-sm-9">
+							      <input type="text" name="empId" class="form-control" id="updateId" readonly>
+							    </div>
+							  </div>
+							  
+							  	<div class="mb-3 row">
+							    <label for="staticEmail" class="col-sm-3 col-form-label">비밀번호</label>
+							    <div class="col-sm-9">
+							      <input type="password" name="empPw" class="form-control" id="updatePw">
+							    </div>
+							  </div>
+							  
+							  	<div class="mb-3 row">
+							    <label for="staticEmail" class="col-sm-3 col-form-label">비밀번호확인</label>
+							    <div class="col-sm-9">
+							      <input type="password" name="empPwcr" class="form-control" id="updatePwcr">
+							    </div>
+							  </div>
+							  
+							  	<div class="mb-3 row">
+							    <label for="staticEmail" class="col-sm-3 col-form-label">직원 이름</label>
+							    <div class="col-sm-9">
+							      <input type="text" name="empNm" class="form-control" id="updateEmpName">
+							    </div>
+							  </div>
+							  
+							  	<div class="mb-3 row">
+							    <label for="staticEmail" class="col-sm-3 col-form-label">직급 정보</label>
+							    <div class="col-sm-9">
+							      <select name="empRole" class="form-control" id="updateRole">
+							      	<option th:each="job : ${jobs}" th:value="${job.commdCd}" th:text="${job.commdNm}"></option>
+							      </select>
+							    </div>
+							  </div>
+		
+		
+							</div>
+					    
+							<div class="modal-footer">
+								<input type="submit" class="btn btn-primary" name="updateBtn" id="updateBtn" value="수정">
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+
+		<button type="button" class="btn btn-dark btn-sm" id="deleteBtn">회원 삭제</button>
+
+		<!-- 모달창 3번 -->
+	<!-- 	<div class="modal fade" id="staticBackdrop3" data-bs-backdrop="static"
+			data-bs-keyboard="false" tabindex="-1"
+			aria-labelledby="staticBackdropLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="staticBackdropLabel">삭제 확인</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal"
+							aria-label="Close"></button>
+					</div>
+					<div class="modal-body" align="center">정말 해당 해원을 삭제 하시겠습니까?</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="deleteBtn" name="deleteBtn">확인</button>
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+					</div>
+				</div>
+			</div>
+		</div> -->
+
+
+	</div>
+	
+	<script>
+		/* token */
+		var token = $("meta[name='_csrf']").attr("content");
+		var header = $("meta[name='_csrf_header']").attr("content");
+	
+		pickerInit('#wrapper', '#hireDate');	// 구매날짜 datepicker	
+		
+		// toastr
+		toastr.options = {
+			    "closeButton": false,
+			    "newestOnTop": true,
+			    "positionClass": "toast-top-center",
+			    "preventDuplicates": true,
+			    "extendedTimeOut" : 1500, 
+			    "timeOut" : 2500
+		}
+		
+	 class RowNumberRenderer {
+	      constructor(props) {
+	        const el = document.createElement('span');
+	        el.innerHTML = `No.${props.formattedValue}`;
+	        this.el = el;
+	      }
+
+	      getElement() {
+	        return this.el;
+	      }
+
+	      render(props) {
+	        this.el.innerHTML = `No.${props.formattedValue}`;
+	      }
+	    }
+
+	    class CheckboxRenderer {
+	      constructor(props) {
+	        const { grid, rowKey } = props;
+
+	        const label = document.createElement('label');
+	        label.className = 'checkbox tui-grid-row-header-checkbox';
+	        label.setAttribute('for', String(rowKey));
+
+	        const hiddenInput = document.createElement('input');
+	        hiddenInput.className = 'hidden-input';
+	        hiddenInput.id = String(rowKey);
+
+	        const customInput = document.createElement('span');
+	        customInput.className = 'custom-input';
+
+	        label.appendChild(hiddenInput);
+	        label.appendChild(customInput);
+
+	        hiddenInput.type = 'checkbox';
+	        label.addEventListener('click', (ev) => {
+	          ev.preventDefault();
+
+	          if (ev.shiftKey) {
+	            grid[!hiddenInput.checked ? 'checkBetween' : 'uncheckBetween'](rowKey);
+	            return;
+	          }
+
+	          grid[!hiddenInput.checked ? 'check' : 'uncheck'](rowKey);
+	        });
+
+	        this.el = label;
+
+	        this.render(props);
+	      }
+
+	      getElement() {
+	        return this.el;
+	      }
+
+	      render(props) {
+	        const hiddenInput = this.el.querySelector('.hidden-input');
+	        const checked = Boolean(props.value);
+
+	        hiddenInput.checked = checked;
+	      }
+	    }
+
+	
+		const grid = new tui.Grid({
+			
+			rowHeaders: ['rowNum', 'checkbox'], // 체크박스
+			
+			el : document.getElementById('grid'),
+			bodyHeight: 500, // 스크롤
+			scrollX : false,
+			scrollY : true,
+			columns : [ {	
+				header : '직원 번호',
+				name : 'empNo',
+				sortingType: 'desc',
+		        sortable: true,
+		        align: 'center'
+			}, {
+				header : '직원이름',
+				name : 'empNm',
+				sortingType: 'desc',
+		        sortable: true,
+		        align: 'center',
+		        filter: 'text'
+			}, {
+				header : '계정아이디',
+				name : 'empId',
+				sortingType: 'desc',
+		        sortable: true,
+		        align: 'center'
+			},  {
+				header : '입사일',
+				name : 'empDate',
+				sortingType: 'desc',
+		        sortable: true,
+		        align: 'center'
+			}, {
+				header : '부서명',
+				name : 'deptNm',
+				sortingType: 'desc',
+		        sortable: true,
+		        align: 'center'
+			}, {
+				header : '직급정보',
+				name : 'empRole',
+				sortingType: 'desc',
+		        sortable: true,
+		        align: 'center'
+			}],
+			
+		});
+	
+		
+		// ajax 직원 정보 불러오기
+		function selectEmps() {
+			$.ajax({
+				url : "ajax/selectEmp",
+				type : "get",
+				dataType: "json",
+				success : function(data){
+					grid.resetData(data);
+				},
+				error : function(reject){
+					console.log(reject);
+				}
+			})
+		}
+		selectEmps();	
+	
+		
+		// 회원 등록하기
+		
+		document.getElementById('insertBtn').addEventListener('click', function(){
+			let data = {
+					empId: document.getElementById('insertId').value,
+					empPw: document.getElementById('insertPw').value,
+					empNm: document.getElementById('insertName').value,
+					empDate: document.getElementById('hireDate').value,
+					deptCd: document.getElementById('deptName').value,
+					empRole: document.getElementById('insertRole').value
+			}
+			
+			// 값 입력 유무 확인
+			for (let prop in data) {
+				if (data[prop] == '') {
+					toastr.warning('값을 모두 입력해주세요');
+					return;
+				}
+			}
+
+			// 아이디 중복확인
+			let idCheck = '';
+			$.ajax({
+				url : "/ajax/selectEmpInfo",
+				type : "post",
+				data: {'empId': data.empId},
+				async: false,
+				beforeSend : function (xhr) {
+				    xhr.setRequestHeader(header, token);
+				},
+				success : function(result){
+					if (result.empId == data.empId) {
+						idCheck = 'N';
+						return;
+					} else {
+						idCheck = 'Y';
+					}
+				},
+				error : function(reject){
+					console.log(reject);
+				}
+			});
+			
+			if (idCheck == 'N') {
+				toastr.error('이미 등록된 아이디입니다.');
+				document.getElementById('insertId').focus();
+				return;
+			}
+			
+			// 비밀번호, 비밀번호 확인 일치여부 확인
+			if (document.getElementById('insertPw').value != document.getElementById('insertPwcr').value) {
+				toastr.warning('비밀번호가 맞지 않습니다.');
+				document.getElementById('insertPwcr').focus();
+				return;
+			}
+			
+			sweetConfirm('C', function () {
+				// ajax 직원 정보 등록
+				$.ajax({
+					url : "/ajax/insertEmp",
+					type : "post",
+					data: data,
+					dataType: "json",
+					beforeSend : function (xhr) {
+					    xhr.setRequestHeader(header, token);
+					},
+					success : function(result){
+						if (result > 0) {
+							// ajax success
+				            toastr.success('정상적으로 등록되었습니다.');
+				            selectEmps();
+							insertModalClose.click(); // 모달 닫기
+				            //setTimeout(() => {location.reload(), 3000});
+						} else {
+							// ajax fail
+				            toastr.error('등록에 실패했습니다.');	
+						}
+					},
+					error : function(reject){
+						console.log(reject);
+					}
+				});
+				
+			});
+		});
+		
+		//회원 수정하기
+		
+		$("#mainUpdateBtn").click(function(e){  //메인 화면 수정버튼
+			let rowData = grid.getCheckedRows();
+
+			if (rowData.length < 1) {
+				toastr.warning('하나의 회원을 선택해주세요.');
+				return;
+			} else if (rowData.length > 1) {
+				toastr.warning('하나의 회원만 선택하세요.');
+				return;
+			}
+			
+			$('#staticBackdrop2').modal('show');
+				 /*
+				 rowData의 각각 정보를 각각 변수에 담는다.
+				 모달의 input태그들의 value값에 변수들을 담아준다.
+				 */
+				 
+			$.ajax({
+				url : "/ajax/selectEmpInfo",
+				type : "post",
+				data: {'empId': rowData[0].empId},
+				async: false,
+				beforeSend : function (xhr) {
+				    xhr.setRequestHeader(header, token);
+				},
+				success : function(result){
+					document.getElementById('updateId').value = result.empId;
+					document.getElementById('updateEmpName').value = result.empNm;
+					document.getElementById('updateRole').value = result.empRole;
+				},
+				error : function(reject){
+					console.log(reject);
+				}
+			});
+		 });
+	
+		// 모달창 수정버튼 이벤트
+		
+		document.getElementById('updateBtn').addEventListener('click', function(){ //모달창에 수정 버튼
+			let data = {
+					empNo: grid.getCheckedRows()[0]['empNo'],
+					empId: document.getElementById('updateId').value,
+					empPw: document.getElementById('updatePw').value,
+					empNm: document.getElementById('updateEmpName').value,
+					empRole: document.getElementById('updateRole').value
+			};
+			
+			// 비밀번호, 비밀번호 확인 일치여부 확인
+			if (document.getElementById('updatePw').value != document.getElementById('updatePwcr').value) {
+				toastr.warning('비밀번호가 맞지 않습니다.');
+				document.getElementById('updatePwcr').focus();
+				return;
+			}
+			
+			sweetConfirm('U', function () {
+				
+			
+				// ajax 직원 정보 수정
+				$.ajax({
+					url : "/ajax/updateEmp",
+					type : "post",
+					data: data,
+					dataType: "json",
+					beforeSend : function (xhr) {
+					    xhr.setRequestHeader(header, token);
+					},
+					success : function(data){
+						if (data > 0) {
+							// ajax success
+				            toastr.success('정상적으로 수정되었습니다.');
+				            selectEmps();
+				            updateModalClose.click(); // 모달창 닫기
+						} else {
+							// ajax fail
+				            toastr.error('수정에 실패했습니다.');	
+						}
+					},
+					error : function(reject){
+						console.log(reject);
+					}
+				});
+
+			/* grid.setValue(data[0].rowKey, 'empId', updateId.value);
+			grid.setValue(data[0].rowKey, 'empPw', updatePw.value);
+			grid.setValue(data[0].rowKey, 'empPwcr', updatePwcr.value);
+			grid.setValue(data[0].rowKey, 'empNm', document.getElementById('updateEmpName').value);
+			grid.setValue(data[0].rowKey, 'empRole', updateRole.value); */
+			
+			updateModalClose.click(); // 모달창 닫기
+			});
+ 		});
+	
+		//회원 삭제하기
+	
+		document.getElementById('deleteBtn').addEventListener('click',function(){
+			
+			sweetConfirm('D', function () {
+				let data = grid.getCheckedRows(); 
+				
+				// ajax 직원 정보 삭제
+				$.ajax({
+					url : "/ajax/delEmp",
+					type : "post",
+					data: JSON.stringify(data),
+					contentType: "application/json",
+					dataType: "json",
+					beforeSend : function (xhr) {
+					    xhr.setRequestHeader(header, token);
+					},
+					success : function(data){
+						if (data > 0) {
+							// ajax success
+				            toastr.success('정상적으로 삭제되었습니다.');
+				            grid.removeCheckedRows();
+						} else {
+							// ajax fail
+				            toastr.error('삭제에 실패했습니다.');	
+						}
+					},
+						error : function(reject){
+							console.log(reject);
+						}
+					
+					});
+		            
+		         });
+					
+			});
+		
+		//직원 이름 검색 기능     
+		
+	     document.getElementById('searchBtn').addEventListener('click', function(){
+	    	grid.filter('empNm', [{code: 'contain', value: searchEmpName.value}]);
+	     
+	     });
+	     
+		
+	     document.getElementById('searchEmpName').addEventListener("keydown", function(){
+	         if(event.keyCode == 13){
+	        	 grid.filter('empNm', [{code: 'contain', value: searchEmpName.value}]);
+	        	 searchEmpName.value = '';
+	        	 
+	         }
+	     })
+	     
+	     //초기화 버튼 누를시 다시 데이터 원상복구
+	     
+	     document.getElementById("searchReset").addEventListener('click', function(){
+	    	grid.unfilter('empNm', [{code: 'eq', value: searchEmpName.value}]);
+	     });
+     
+	</script>
+
+</div>

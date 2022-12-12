@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mandu.yamyam.comm.mapper.CommMapper">
+
+<!-- ajax 공통코드 불러오기 -->
+<select id="ajaxSelectComm" resultType="com.mandu.yamyam.common.LowerKeyMap">
+	
+	SELECT COMM_CD, COMM_NM
+	FROM C_COMM
+
+</select>
+
+<!-- ajax 상세 공통 코드 불러오기 -->
+<select id="ajaxSelectDetailComm" resultType="com.mandu.yamyam.common.LowerKeyMap">
+	
+	SELECT COMMD_CD, COMMD_NM, COMMD_INFO, COMMD_USE
+	FROM C_COMMD
+	WHERE COMM_CD = #{commCd}
+	
+</select>
+
+<!-- ajax 상세 공통 코드 한건 불러오기 -->
+<select id="ajaxFindCommd" parameterType="com.mandu.yamyam.comm.service.CommdVO" resultType="com.mandu.yamyam.comm.service.CommdVO">
+	SELECT commd_cd
+	FROM c_commd
+	WHERE commd_cd = #{commdCd}
+</select>
+
+<!-- 상세 공통 코드 등록 -->
+
+<insert id="ajaxInsertDetailComm" parameterType="com.mandu.yamyam.comm.service.CommdVO">
+
+	INSERT INTO C_COMMD
+	(
+	COMMD_CD, 
+	COMM_CD,
+	COMMD_NM,
+	COMMD_INFO,
+	COMMD_USE
+	)
+	
+	VALUES
+	(
+	#{commdCd},
+	#{commCd},
+	#{commdNm},
+	#{commdInfo},
+	#{commdUse}
+	)
+	
+</insert>
+
+<!-- ajax 상세 공통 코드 수정	 -->
+<update id="ajaxUpdateCommd" parameterType="com.mandu.yamyam.comm.service.CommdVO">
+	UPDATE c_commd
+	SET    comm_cd = #{commCd},
+	       commd_nm = #{commdNm},
+	       commd_info = #{commdInfo},
+	       commd_use = #{commdUse}
+	WHERE  commd_cd = #{commdCd}
+</update>
+
+<!-- 상세 공통 코드 삭제 -->
+
+<delete id="ajaxDeleteDetailComm" parameterType="com.mandu.yamyam.comm.service.CommdVO">
+	
+	DELETE FROM C_COMMD
+	WHERE COMMD_CD = #{commdCd}
+	
+</delete>
+
+<!-- 공통 코드 등록 -->
+
+<insert id="ajaxInsertComm" parameterType="com.mandu.yamyam.comm.service.CommVO">
+
+	INSERT INTO C_COMM
+	(COMM_CD, 
+	 COMM_NM, 
+	 COMM_INFO, 
+	 COMM_USE
+	 )
+	VALUES
+	(
+	#{commCd},
+	#{commNm},
+	#{commInfo},
+	#{commUse}
+	)
+
+</insert>
+
+<!-- 상세 공통 코드, 이름 불러오기(성하) -->
+
+<select id="getCommdCdNm" parameterType="String" resultType="com.mandu.yamyam.common.LowerKeyMap">
+
+	SELECT COMMD_CD, COMMD_NM
+	FROM   C_COMMD
+	WHERE  COMM_CD = #{value}
+
+
+</select>
+
+<!-- ajax 공통 코드 단건 조회 -->
+<select id="ajaxFindComm" parameterType="String" resultType="com.mandu.yamyam.comm.service.CommVO">
+	SELECT comm_cd,
+	       comm_nm,
+	       comm_info,
+	       comm_use
+	FROM   c_comm
+	WHERE  comm_cd = #{value}
+</select>
+
+
+<!-- ajax 공통 코드 수정 -->
+<update id="ajaxUpdateComm" parameterType="com.mandu.yamyam.comm.service.CommVO">
+	UPDATE c_comm
+	SET    comm_nm = #{commNm},
+	       comm_info = #{commInfo},
+	       comm_use = #{commUse}
+	WHERE  comm_cd = #{commCd}
+
+</update>
+
+<!-- ajax 공통 코드 삭제 -->
+<delete id="ajaxDeleteComm" parameterType="com.mandu.yamyam.comm.service.CommVO" statementType="CALLABLE">
+	{CALL DELETE_COMM(#{commCd, mode=IN, jdbcType=VARCHAR, javaType=java.lang.String},
+		                 #{result, mode=OUT, jdbcType=NUMERIC, javaType=int}
+		                 )}
+</delete>
+
+<!-- ajax 자재코드 불러오기 -->
+<select id="ajaxSelectMat" resultType="com.mandu.yamyam.common.LowerKeyMap">
+	
+	SELECT 
+			MTR_CD,
+			ACT_CD,
+			MTR_NM,
+			FIND_CODE_NAME(MTR_STD) MTR_STD,
+			FIND_CODE_NAME(MTR_UN) MTR_UN,
+			MTR_SFAMT,
+			FIND_CODE_NAME(MTR_STS) MTR_STS,
+			MTR_PRC
+	FROM C_MTR
+	
+</select>
+
+<!-- ajax 거래처 코드(모달) 불러오기 -->
+<select id="ajaxSelectModalAct" resultType="com.mandu.yamyam.common.LowerKeyMap">
+	
+	SELECT ACT_CD, ACT_NM, ACT_NUM, ACT_TEL
+	FROM C_ACT
+	WHERE ACT_DIV = 'ACT-TYPE2'
+
+</select>
+
+<!--  ajax 자재 - 자재 단건 정보 가져오기 -->
+
+<select id="ajaxSelectMtrInfo" resultType="com.mandu.yamyam.comm.service.MtrVO">
+	
+	SELECT MTR_CD,
+	       ACT_CD,
+	       FIND_ACT_NAME(ACT_CD) AS ACT_NM,
+	       MTR_NM,
+	       MTR_STD,
+	       MTR_UN,
+	       MTR_SFAMT,
+	       MTR_PRC,
+	       MTR_STS
+	FROM C_MTR
+	WHERE MTR_CD = #{mtrCd}
+	
+</select>
+
+<!-- ajax 자재 - 자재 정보 등록 -->
+
+<insert id="ajaxInsertMtr" parameterType="com.mandu.yamyam.comm.service.MtrVO">
+	<selectKey keyProperty="mtrCd" resultType="String" order="BEFORE">
+		SELECT mk_mtr_cd FROM dual
+	</selectKey>
+	INSERT INTO C_MTR 
+	(
+	MTR_CD,
+	MTR_NM,
+	MTR_STD,
+	MTR_UN,
+	ACT_CD,
+	MTR_SFAMT,
+	MTR_PRC,
+	MTR_STS
+	)
+	VALUES
+	(
+	#{mtrCd},
+	#{mtrNm},
+	#{mtrStd},
+	#{mtrUn},
+	#{actCd},
+	#{mtrSfamt},
+	#{mtrPrc},
+	#{mtrSts}
+	)
+
+</insert>
+
+<!-- ajax 자재 - 자재 정보 수정 -->
+
+<update id="ajaxUpdateMtr" parameterType="com.mandu.yamyam.comm.service.MtrVO">
+
+	UPDATE C_MTR
+	SET MTR_NM = #{mtrNm},
+	MTR_STD = #{mtrStd},
+	MTR_UN = #{mtrUn},
+	ACT_CD = #{actCd},
+	MTR_SFAMT = #{mtrSfamt},
+	MTR_STS = #{mtrSts},
+	MTR_PRC = #{mtrPrc}
+	WHERE MTR_CD = #{mtrCd}
+
+</update>
+
+<!-- ajax 자재 - 자재 정보 삭제 -->
+
+<delete id="ajaxDeleteMtr" parameterType="com.mandu.yamyam.comm.service.MtrVO">
+
+DELETE FROM C_MTR
+WHERE MTR_CD = #{mtrCd}
+
+</delete>
+
+<!-- ajax 거래처 코드 불러오기 -->
+<select id="ajaxSelectAct" resultType="com.mandu.yamyam.common.LowerKeyMap">
+	
+	SELECT  ACT_CD,
+			ACT_NM,
+			ACT_NUM,
+			ACT_TEL,
+			ACT_STS,
+			ACT_DIV,
+			FIND_CODE_NAME(ACT_DIV) AS ACT_DIV_NM
+	FROM C_ACT
+	ORDER BY ACT_NM
+	
+</select>
+
+<!-- ajax 구매 거래처 등록하기 -->
+<insert id="ajaxInsertAct" parameterType="com.mandu.yamyam.comm.service.ActVO">
+	<selectKey keyProperty="actCd" resultType="String" order="BEFORE">
+		SELECT mk_act_cd FROM dual
+	</selectKey>
+	
+	INSERT INTO C_ACT
+					(
+					ACT_NM, 
+					ACT_CD, 
+					ACT_NUM, 
+					ACT_TEL, 
+					ACT_DIV, 
+					ACT_STS
+					)
+			VALUES
+					(
+					#{actNm},
+					#{actCd},
+					#{actNum},
+					#{actTel},
+					#{actDiv},
+					#{actSts}
+					)
+</insert>
+
+<!-- 구매 거래처 수정하기 -->
+<update id="ajaxUpdateAct" parameterType="com.mandu.yamyam.comm.service.ActVO">
+
+	UPDATE C_ACT
+	SET 
+	ACT_NM = #{actNm},
+	ACT_NUM = #{actNum},
+	ACT_TEL = #{actTel},
+	ACT_STS = #{actSts},
+	ACT_DIV = #{actDiv}
+	WHERE ACT_CD = #{actCd}
+
+</update>
+
+
+<delete id="ajaxDeleteAct" parameterType="com.mandu.yamyam.comm.service.ActVO">
+	DELETE FROM c_act
+	WHERE act_cd = #{actCd}
+</delete>
+
+<!-- ajax 완제품코드 불러오기 -->
+<select id="ajaxSelectPrd" resultType="com.mandu.yamyam.common.LowerKeyMap">
+	
+	SELECT
+		PRD_CD,
+		PRD_NM,
+		FIND_CODE_NAME(PRD_STD) AS PRD_STD,
+		FIND_CODE_NAME(PRD_UN) AS PRD_UN,
+		PRD_SFAMT 
+	FROM C_PRD
+	<where>
+	
+		<if test = "prdStd !=null and prdStd != ''">
+			prd_std = #{prdStd}
+		</if>	
+	
+		<if test = "prdUn !=null and prdUn != ''">
+			AND prd_un = #{prdUn}
+		</if>
+		
+		<if test = "prdCd !=null and prdCd != ''">
+			AND prd_cd like '%' || Upper(#{prdCd}) || '%'
+		</if>
+		
+		<if test = "prdNm !=null and prdNm != ''">
+			AND prd_nm like '%' || #{prdNm} || '%'
+		</if>	
+		
+	</where> 
+	ORDER BY PRD_CD
+</select>
+
+<!-- 완제품 코드 등록하기 -->
+
+<insert id="ajaxInsertPrd" parameterType="com.mandu.yamyam.comm.service.PrdVO">
+
+	<selectKey keyProperty="prdCd" resultType="String" order="BEFORE">
+		SELECT mk_prd_cd FROM dual
+	</selectKey>
+
+	INSERT INTO C_PRD(
+	PRD_CD,
+	PRD_NM,
+	PRD_STD,
+	PRD_UN,
+	PRD_SFAMT
+	)
+	VALUES
+	(
+	#{prdCd},
+	#{prdNm},
+	#{prdStd},
+	#{prdUn},
+	#{prdSfamt}
+	)
+
+</insert>
+
+<delete id="ajaxDeletePrd" parameterType="com.mandu.yamyam.comm.service.PrdVO">
+
+	DELETE FROM C_PRD
+	WHERE PRD_CD = #{prdCd}
+
+</delete>
+
+<!-- ajax BOM 불러오기 -->
+
+<select id="ajaxSelectBOM" resultType="com.mandu.yamyam.common.LowerKeyMap">
+
+	SELECT BOM_NO, PPRO_CD,
+	       find_PPRO_name(PPRO_CD) AS PPRO_NAME,
+	       BOM_CD,
+	       PRD_CD,
+	       MTR_CD,
+	       FIND_MTR_NAME(MTR_CD) AS MTR_NM,
+	       BOM_AMT,
+	       BOM_USE
+	FROM   C_BOM B
+	
+</select>
+
+<!-- ajax BOM 제품목록 모달창 불러오기(grid2) -->
+
+<select id="ajaxSelectModalBOM" resultType="com.mandu.yamyam.common.LowerKeyMap">
+
+	SELECT PRD_CD, PRD_NM, PRD_STD
+	FROM C_PRD
+	
+</select>
+
+<!-- ajax BOM 사용공정명(모달창(grid3) -->
+
+<select id="ajaxSelectProInfoModalBOM" resultType="com.mandu.yamyam.common.LowerKeyMap">
+
+	SELECT PPRO_CD ,PPRO_NAME
+	FROM P_PRO
+	
+</select>
+
+<!-- ajax BOM 제품명(모달창(grid4)) -->
+<select id="ajaxSelectPrdInfoModalBOM" resultType="com.mandu.yamyam.common.LowerKeyMap">
+
+	SELECT PRD_CD, PRD_NM
+	FROM C_PRD
+
+</select>
+
+<!-- ajax BOM 자재코드 ,자재명(모달창(grid5)) -->
+
+<select id="ajaxSelectMtrInfoModalBOM" resultType="com.mandu.yamyam.common.LowerKeyMap">
+
+	SELECT MTR_CD, MTR_NM
+	FROM C_MTR
+
+</select>
+
+<!-- ajax BOM 등록하기 -->
+
+<insert id="ajaxInsertBOM" parameterType="com.mandu.yamyam.comm.service.BOMVO">
+	<selectKey keyProperty="bomCd" resultType="String" order="BEFORE">
+		SELECT mk_bom_cd FROM dual
+	</selectKey>
+	
+	INSERT INTO C_BOM
+	(
+	BOM_NO,
+	PRD_CD, 
+	BOM_CD, 
+	MTR_CD, 
+	PPRO_CD, 
+	BOM_AMT
+	)
+	VALUES
+	(
+	(SELECT NVL(MAX(bom_no),0)+1 FROM C_BOM),
+	#{prdCd},
+	#{bomCd},
+	#{mtrCd},
+	#{pproCd},
+	#{bomAmt}
+	)
+
+</insert>
+
+<!-- ajax BOM 수정하기 -->
+<update id="ajaxUpdateBOM" parameterType="com.mandu.yamyam.comm.service.BOMVO">
+
+	UPDATE C_BOM
+	SET PRD_CD = #{prdCd},
+	    MTR_CD = #{mtrCd},
+	    PPRO_CD = #{pproCd},
+	    BOM_AMT = #{bomAmt}
+	WHERE BOM_CD = #{bomCd}
+
+</update>
+
+
+<!-- ajax BOM 삭제하기 -->
+<delete id="ajaxDeleteBOM" parameterType="com.mandu.yamyam.comm.service.BOMVO">
+
+	DELETE FROM C_BOM
+	WHERE BOM_NO = #{bomNo}
+
+</delete>
+
+<!-- ajax BOM Filter -->
+
+<select id="ajaxFilterBOM" resultType="com.mandu.yamyam.common.LowerKeyMap">
+	
+	SELECT BOM_NO, PPRO_CD,
+	       find_PPRO_name(PPRO_CD) AS PPRO_NAME,
+	       BOM_CD,
+	       PRD_CD,
+	       MTR_CD,
+	       FIND_MTR_NAME(MTR_CD) AS MTR_NM,
+	       BOM_AMT,
+	       BOM_USE
+	FROM   C_BOM B
+    WHERE PRD_CD = #{prdCd}
+</select>
+
+</mapper>

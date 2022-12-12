@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layout/layout}">
+<head>
+<meta charset="UTF-8">
+<title>YAMYAM</title>
+
+<style>
+#od-btn {
+	display: inline-block; margin: 0 5px; float: right;
+}
+#startpicker-input, #endpicker-input {
+text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+	<div id="od-title">
+		<h3>생산 요청 관리</h3>
+		<hr>
+	</div>
+	
+	<div id="odAd-content">
+      <div id="input-group">
+         <ul class="ul-style">
+      <li><table id="form-check">
+	<tr>
+		<td>진행 상황</td>
+		<td>
+		  <input class="form-check-input" type="radio" name="flexRadioDefault" id="podAll" value="전체" checked>
+		  <label class="form-check-label" for="podAll">전체</label>
+		</td>
+	
+		<td>
+		  <input class="form-check-input" type="radio" name="flexRadioDefault" id="podNo" value="RQT-STS1">
+		  <label class="form-check-label" for="podNo">미계획</label>
+		</td>
+		
+		<td>
+		  <input class="form-check-input" type="radio" name="flexRadioDefault" id="podIng" value="RQT-STS2">
+		  <label class="form-check-label" for="podIng">계획완료</label>
+		</td>
+
+	</tr>
+	</table>
+	</li>
+
+         <li><label>요청일자</label>
+               <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+                  <input id="startpicker-input" type="text" aria-label="Date">
+                  <span class="tui-ico-date"></span>
+                  <div id="startpicker-container" style="margin-left: -1px;"></div>
+               </div>
+               <span>-</span>
+               <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+                  <input id="endpicker-input" type="text" aria-label="Date">
+                  <span class="tui-ico-date"></span>
+                  <div id="endpicker-container" style="margin-left: -1px;"></div>
+               </div>
+            
+               <button class="btn btn-dark btn-sm" id="searchBtn">조회</button>
+               <button type="button" class="btn btn-dark btn-sm" id="cancelBtn">초기화</button></li>
+               </ul>
+			</div>
+		</div>
+
+
+	 <!-- 주문서 Modal -->
+	      <div class="modal" id="orderModal" tabindex="-1"
+	         aria-labelledby="exampleModalLabel" aria-hidden="true">
+	         <div class="modal-dialog">
+	            <div class="modal-content">
+	               <div class="modal-header">
+	                  <h5 class="modal-title" id="exampleModalLabel">주문서 관리</h5>
+	                  <button type="button" class="btn-close" data-bs-dismiss="modal"
+	                     aria-label="Close"></button>
+	               </div>
+	               <div class="modal-body">
+	               <div id="orderModalGrid"></div>
+	               </div>
+	            </div>
+	         </div>
+	      </div>
+	      
+	      
+	<div id="od-btn">
+	<th:block sec:authorize="hasAnyAuthority('JOB-GRD1', 'JOB-GRD2')">
+		<button class="btn btn-dark btn-sm" id="insertBtn">행추가</button>
+		<button class="btn btn-dark btn-sm" id="deleteBtn">선택삭제</button>
+		<button class="btn btn-dark btn-sm" id="saveBtn">저장</button>
+	</th:block>
+	<button class="btn btn-dark btn-sm" id="exportBtn">엑셀 파일 출력</button>
+	</div>
+	
+<div id="podListGrid"></div>
+
+<script>
+
+/* token */
+var token = $("meta[name='_csrf']").attr("content");
+var header = $("meta[name='_csrf_header']").attr("content");
+
+
+	/*------------
+	// function
+	----------------*/
+	getPodList();			// DB에서 생산요청목록 불러오기
+	
+	searchBtnHandler();		// 조회 버튼 핸들러
+	cancelBtnHandler();		// input 값 초기화 버튼
+	deleteBtnHandler();		// 삭제 버튼 핸들러
+	SaveBtnHandler();		// 저장 버튼 핸들러
+	exportBtnHandler(); 	// 엑셀출력 버튼 핸들러
+	
+	let podListGrid = podListGridInit();	// 생산요청 리스트
+	let orderModalGrid = orderGridInit(); 	// 주문서관리 Modal
+	
+	
+	/*------------
+	// 데이트피커
+	----------------*/
+	rangeDatepickerInit('#startpicker-input', '#startpicker-container','#endpicker-input','#endpicker-container')
+	
+	
+	/*------------
+	// 조회버튼 이벤트 핸들러
+	----------------*/
+	function searchBtnHandler(){
+		$('#searchBtn').on('click',function(){
+			let getSts = $("input[name=flexRadioDefault]:checked").val();
+			let getStartDate = $("#startpicker-input").val();
+			let getEndDate = $("#endpicker-input").val();
+			if(getSts == '전체') {
+				$.ajax({
+					 url : '/PodList',
+					 contentType: 'application/json',
+		             dataType : "json",
+		             method: "GET",
+		             success : function(data) {
+		            	 podListGrid.resetData(data);
+		             },
+		             error : function(reject) {
+		                console.log(reject);
+		             }
+				})
+			}else if(getSts != '전체') {
+				$.ajax({
+				   url:'/PodDetailList',
+				   contentType: 'application/json',
+				   dataType: "json",
+				   method: "GET",
+				   data : {
+					   "rqtSts" : getSts, "startDate" : getStartDate, "endDate" : getEndDate
+				   },
+				   success : function(data) {
+					   podListGrid.resetData(data);
+					   console.log(getSts);
+				   },
+				   error : function(reject) {
+					   console.log(reject);
+				   }
+			   })
+			}
+		});
+	}
+   
+	
+   /*------------
+	// 주문 조회 초기화 버튼
+	----------------*/
+	function cancelBtnHandler(){
+		$('#cancelBtn').on('click',function(){
+			let radio_name = [];
+		    let radio = $("input[type=radio]");
+		    $.each(radio, function (key, value) { // input radio의 name 값 가져오기
+		        radio_name.push($(value).attr('name'));
+		    });
+		    radio_name = $.unique(radio_name.sort()).sort(); //중복요소 이름을 제거
+		    for (let i = 0; i < radio_name.length; i++) {
+		        $('input[name="' + radio_name[i] + '"]').removeAttr('checked');
+		        //체크되어있는 항목 모두 해제
+		        $('input[name="' + radio_name[i] + '"]')[0].checked = true;
+		        //name에서 첫번쨰 요소만 선택
+		    }
+			$("#startpicker-input").val(today);
+			$("#endpicker-input").val(today);
+			
+			$.ajax({
+				   url:'/PodList',
+				   contentType: 'application/json',
+				   dataType: "json",
+				   method: "GET",
+				   success : function(data) {
+					   podListGrid.resetData(data);
+				   },
+				   error : function(reject) {
+					   console.log(reject);
+				   }
+			   })
+		});	
+	}
+   
+   
+    /*------------
+	// 생산요청서 리스트 그리드
+	----------------*/	
+	function podListGridInit(){
+		let podListGrid = new tui.Grid({
+		    el: document.getElementById('podListGrid'),
+		    rowHeaders: ['checkbox'],
+		    bodyHeight: 200,
+		    scrollX: false,
+		    scrollY: false,
+		    pageOptions: {
+                useClient: true,   // front에서만 페이징 하는 속성
+                perPage: 5
+          			    },
+         	pagination : true,
+		    columns: [
+		      {
+		        header: '생산요청 일자',
+		        align : 'center',
+		        name: 'rqtDate',
+		      },
+		      {
+		        header: '요청 코드',
+		        align : 'center',
+		        name  : 'rqtNo'
+		      },
+		      {
+		        header: '주문 코드',
+		        align : 'center',
+		        name  : 'odCd',
+			validation: {
+			     dataType: 'text',
+			     required: true
+			      		}
+		      },
+		      {
+		        header: '제품 코드',
+		        align : 'center',
+		        name  : 'prdCd'
+		      },
+		      {
+		        header: '제품명',
+		        align : 'center',
+		        name  : 'prdNm'
+		      },
+		      {
+		        header: '주문량',
+		        align : 'right',
+		        name  : 'odAmt'
+		      },
+		      {
+		        header: '재고량',
+		        align : 'right',
+		        name  : 'samt'
+		      },
+		      {
+		        header: '요청수량',
+		        align : 'right',
+		        name  : 'rqtAmt',
+		        editor: 'text',
+				// 필수 입력 값
+				validation: {
+				     dataType: 'text',
+				     required: true
+				      }
+		      },
+		      {
+		        header: '납기 일자',
+		        align : 'center',
+		        name  : 'deDate',
+		      },
+		      {
+		        header: '진행 상황',
+		        align : 'center',
+		        name  : 'rqtSts'
+		      },
+		    ]
+		  });
+			return podListGrid;
+    }
+
+    
+	/*------------
+	// 생산요청 리스트 가져오기
+	----------------*/
+	  function getPodList() {
+          $.ajax({
+             url : '/PodList',
+             dataType : "json",
+             success : function(data) {
+            	 podListGrid.resetData(data);
+             },
+             error : function(reject) {
+                console.log(reject);
+             }
+          })
+       }
+    
+    
+	 /*------------
+	// 해당하는 header의 모달창 띄우기
+	----------------*/
+	podListGrid.on('click',function(ev){
+
+   		if(ev.columnName =='odCd'){
+   		 $.ajax({
+             url : '/ordModal',
+             dataType : "json",
+             success : function(data) {
+            	 orderModalGrid.resetData(data);
+   				$('#orderModal').modal('show');
+   				orderModalGrid.refreshLayout();
+             },
+             error : function(reject) {
+                console.log(reject);
+             }
+          })
+   		}
+   	});
+
+    
+	/*------------
+	// 행추가 버튼
+	----------------*/
+   $('#insertBtn').on('click',function(){
+      let rowData = [{rqtDate: "", rqtNo: "", odCd: "", prdCd: "", prdNm: "", odAmt: "", samt : "" , rqtAmt: "", deDate: "", rqtSts:""}]
+      podListGrid.appendRow(rowData,{at : 0}); 
+	});
+	
+	
+   /*------------
+	// 저장 버튼 클릭
+	----------------*/
+	function SaveBtnHandler(){
+		$('#saveBtn').on('click',function(){
+			podListGrid.blur();
+			let rowData = podListGrid.getCheckedRows();
+			let podList = [];
+			let rqtNo = '';
+		
+			for (let i=0; i<rowData.length; i++) {
+				rqtNo = rowData[i].rqtNo;
+				let rqtDate = rowData[i].rqtDate;
+				let rqtAmt = rowData[i].rqtAmt;
+				let prdCd = rowData[i].prdCd;
+				let odCd = rowData[i].odCd;
+				let rqtSts = rowData[i].rqtSts;
+				podList.push({rqtNo,rqtDate,rqtAmt,prdCd,odCd,rqtSts});
+				console.log(rowData[i].odCd);
+			}
+			
+			if (rqtNo == null){
+				sweetConfirm('C', function(){
+							$.ajax({
+								url : '/insertPodList',
+								type : 'post',
+								contentType: 'application/json',
+								data: JSON.stringify(podList),
+								dataType : 'json',
+								beforeSend : function (xhr) {
+								    xhr.setRequestHeader(header, token);
+								},
+								 success : function(result) {
+					                 if(result > 0){
+					                	 Swal.fire(
+					       			          '등록이 완료되었습니다.'	);
+					                	 getPodList();
+					                 }else {
+					                	 Swal.fire(
+					                			 '등록이 실패하였습니다.');
+					                 }
+					              },
+					              error : function(reject) {
+					                 console.log(reject);
+					              }
+					}) // end ajax
+				}) // end sweet
+			}else if(rqtNo != null) {
+				if(rqtSts == '계획완료') {
+					toastr.options = {
+							  "closeButton": true,
+							  "newestOnTop": true,
+							  "positionClass": "toast-bottom-full-width",
+							  "preventDuplicates": true,
+							  "extendedTimeOut" : 0, 
+							  "timeOut" : 0
+					}
+					toastr.error('계획완료된 생산요청서는 수정할 수 없습니다.');
+				}else {
+					sweetConfirm('U', function(){
+					$.ajax({
+						url : '/updatePodList',
+						type : 'post',
+						contentType: 'application/json',
+						data: JSON.stringify(podList),
+						dataType : 'json',
+						beforeSend : function (xhr) {
+						    xhr.setRequestHeader(header, token);
+						},
+						 success : function(result) {
+			                 if(result > 0){
+			                	 Swal.fire(
+			       			          '수정이 완료되었습니다.'	);
+			                	 getPodList();
+			                 }else {
+			                	 Swal.fire(
+			                			 '수정이 실패하였습니다.');
+			                 }
+			              },
+			              error : function(reject) {
+			                 console.log(reject);
+			              }
+					}) // end ajax
+				}) // end sweet
+				} // end else
+			} // end else if
+			}) // end click
+		}
+	
+   
+   
+	
+   /*------------
+	// 삭제 버튼 클릭(그리드행 삭제)
+	----------------*/	
+	function deleteBtnHandler(){
+		// grid 선택 행 삭제
+		$('#deleteBtn').on('click',function(){
+			let rowData = podListGrid.getCheckedRows();
+			let list = [];
+			let rqtSts = '';
+			for (let i=0; i<rowData.length; i++) {
+				let rqtNo = rowData[i].rqtNo;
+				rqtSts = rowData[i].rqtSts;
+				list.push({rqtNo})
+			}
+			if(rqtSts == '계획완료') {
+				toastr.options = {
+						  "closeButton": true,
+						  "newestOnTop": true,
+						  "positionClass": "toast-bottom-full-width",
+						  "preventDuplicates": true,
+						  "extendedTimeOut" : 0, 
+						  "timeOut" : 0
+				}
+				toastr.error('계획완료된 생산요청서는 삭제할 수 없습니다.');
+			}else {
+			sweetConfirm('D', function(){
+		    	  $.ajax({
+		              url : '/deletePodList',
+		              type: 'delete',
+		              contentType: 'application/json',
+						data: JSON.stringify(list),
+		              success : function(result) {
+		                 if(result > 0){
+		                	 Swal.fire(
+		       			          '삭제가 완료되었습니다.'	);
+		                	 getPodList();
+		                 }else {
+		                	 Swal.fire(
+		                			 '삭제에 실패하였습니다.');
+		                 }
+		              },
+		              error : function(reject) {
+		                 console.log(reject);
+		              }
+		           })
+		        podListGrid.removeCheckedRows();   
+	})
+			}
+
+
+	})
+   }
+   
+   
+	/*------------
+	// 주문서 Modal
+	----------------*/
+	function orderGridInit() {
+		let orderModalGrid = new tui.Grid({
+		    el: document.getElementById('orderModalGrid'),
+		    bodyHeight: 200,
+		    rowHeaders: ['rowNum'],
+		    scrollX: false,
+		    scrollY: false,
+		    pageOptions: {
+	            useClient: true,   // front에서만 페이징 하는 속성
+	            perPage: 5
+	      			    },
+		    columns: [
+		      {
+		        header: '주문 코드',
+		        align : 'center',
+		        name  : 'odCd'
+		      },
+		      {
+		        header: '제품 코드',
+		        width : 100,
+		        align : 'center',
+		        name  : 'prdCd'
+		      },
+		      {
+		        header: '제품명',
+		        align : 'center',
+		        name  : 'prdNm'
+		      },
+		      {
+		        header: '주문량',
+		        align : 'right',
+		        width : 70,
+		        name  : 'odAmt'
+		      },
+		      {
+		        header: '재고량',
+		        align : 'right',
+		        name  : 'samt'
+		      },
+		      {
+		        header: '납기일자',
+		        align : 'center',
+		        name  : 'deDate'
+		      }
+		    ]
+		  });
+			return orderModalGrid;
+	   }
+	
+		orderModalGrid.hideColumn('samt');
+		orderModalGrid.hideColumn('deDate');
+	
+	
+	 /*------------
+	// 주문서 모달에서 값 가져오기
+	----------------*/
+  	orderModalGrid.on('click', ev => {
+	   let val = orderModalGrid.getRow(ev.rowKey); // 클릭한 그리드
+	  
+	   let val2 = podListGrid.getFocusedCell().rowKey; // 진짜 큰 그리드
+	    
+	   	console.log(podListGrid.getValue(ev.rowKey,ev.columnName));
+	    const pmg = podListGrid.getValue(ev.rowKey,ev.columnName);
+	    podListGrid.setValue(val2, 'odCd', val.odCd);
+	    podListGrid.setValue(val2, 'prdCd', val.prdCd);
+	    podListGrid.setValue(val2, 'prdNm', val.prdNm);
+	    podListGrid.setValue(val2, 'odAmt', val.odAmt);
+	    podListGrid.setValue(val2, 'samt', val.samt);
+	    podListGrid.setValue(val2, 'deDate', val.deDate);
+
+	    $('#orderModal').modal("hide");
+   })
+   
+	 
+   
+	/*------------
+	// 엑셀 내보내기
+	----------------*/
+	function exportBtnHandler() {
+	   $('#exportBtn').on('click',function(){
+		   let options = {
+				     includeHeader : true,
+				     includeHiddenColumns : true,
+				     onlySelected : true,
+				     fileName: 'Pod Order List'
+				   };
+		 podListGrid.export('xlsx', options);
+	   });
+	 }
+</script>
+</div>
+</body>
+</html>
